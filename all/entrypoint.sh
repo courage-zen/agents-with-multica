@@ -4,7 +4,7 @@ set -e
 if [ "$(id -u)" = "0" ]; then
     mkdir -p /home/agent/.cc-proxy /home/agent/.multica /home/agent/.claude
     chown -R agent:agent /home/agent/.claude || true
-    exec su -p -s /bin/bash agent -c "exec $0"
+    exec su -p -s /bin/bash agent -c "HOME=/home/agent exec $0"
 fi
 
 if [ ! -f ~/.multica/config.json ]; then
