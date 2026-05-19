@@ -100,7 +100,7 @@ PYEOF
 
 case "${AGENT}" in
   claude)
-    sudo cc-proxy start -c /etc/cc-proxy &
+    sudo -n cc-proxy start -c /etc/cc-proxy &
     CC_PROXY_PID=$!
 
     # Wait for cc-proxy to be ready
