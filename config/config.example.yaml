@@ -1,0 +1,24 @@
+# cc-proxy 配置示例（测试用）
+# 实际使用时将文件复制到 config/config.yaml 并填入真实密钥
+
+proxy:
+  listen: "127.0.0.1"
+  port: 15721
+  mode: "global"
+
+failover:
+  enabled: true
+  auto_switch: true
+
+logging:
+  level: "debug"
+
+providers:
+  - name: test-provider
+    type: openai_chat
+    api_key: YOUR_API_KEY_HERE
+    base_url: https://api.example.com
+    models:
+      - claude-sonnet-4-5
+    priority: 1
+    enabled: true
