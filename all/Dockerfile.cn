@@ -31,12 +31,15 @@ ARG OPENCODE_VERSION="1.15.5"
 RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources && \
     apt-get update && \
     apt-get install -y --no-install-recommends git ca-certificates && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* && \
+    useradd -m -s /bin/bash agent && \
+    echo "agent ALL=(ALL) NOPASSWD: /usr/local/bin/cc-proxy start -c /home/agent/.cc-proxy" >> /etc/sudoers.d/agent && \
+    chmod 0440 /etc/sudoers.d/agent
 RUN npm config set registry https://registry.npmmirror.com && \
     npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION:-2.1.100} opencode-ai@${OPENCODE_VERSION:-1.15.5}
 COPY --from=cc-proxy-downloader /out/cc-proxy /usr/local/bin/cc-proxy
 COPY --from=multica-downloader /out/multica /usr/local/bin/multica
 COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-ENV CC_SWITCH_CONFIG_DIR=/etc/cc-proxy
+RUN chmod +x /entrypoint.sh && \
+    chown -R agent:agent /home/agent
 ENTRYPOINT ["/entrypoint.sh"]

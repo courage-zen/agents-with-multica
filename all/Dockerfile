@@ -32,7 +32,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends git ca-certificates curl sudo && \
     rm -rf /var/lib/apt/lists/* && \
     useradd -m -s /bin/bash agent && \
-    echo "agent ALL=(ALL) NOPASSWD: /usr/local/bin/cc-proxy" >> /etc/sudoers.d/agent && \
+    echo "agent ALL=(ALL) NOPASSWD: /usr/local/bin/cc-proxy start -c /home/agent/.cc-proxy" >> /etc/sudoers.d/agent && \
     chmod 0440 /etc/sudoers.d/agent && \
     npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION} opencode-ai@${OPENCODE_VERSION}
 COPY --from=cc-proxy-downloader /out/cc-proxy /usr/local/bin/cc-proxy

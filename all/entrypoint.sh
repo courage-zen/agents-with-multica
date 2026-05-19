@@ -2,7 +2,7 @@
 set -e
 
 if [ "$(id -u)" = "0" ]; then
-    mkdir -p /etc/cc-proxy /home/agent/.multica /home/agent/.claude
+    mkdir -p /home/agent/.cc-proxy /home/agent/.multica /home/agent/.claude
     chown -R agent:agent /home/agent
     exec su -s /bin/bash agent -c "exec $0"
 fi
@@ -11,14 +11,14 @@ if [ ! -f ~/.multica/config.json ]; then
     echo "ERROR: ~/.multica/config.json not found (mount it as read-only volume)" >&2; exit 1
 fi
 
-if [ ! -f /etc/cc-proxy/config.yaml ]; then
-    echo "ERROR: /etc/cc-proxy/config.yaml not found (mount it as read-only volume)" >&2; exit 1
+if [ ! -f ~/.cc-proxy/config.yaml ]; then
+    echo "ERROR: ~/.cc-proxy/config.yaml not found (mount it as read-only volume)" >&2; exit 1
 fi
 
 RUNTIME_NAME="${MULTICA_AGENT_RUNTIME_NAME:-Docker}"
 DEVICE_NAME="${MULTICA_DAEMON_DEVICE_NAME:-Docker}"
 
-sudo -n cc-proxy start -c /etc/cc-proxy &
+sudo -n cc-proxy start -c /home/agent/.cc-proxy &
 
 for i in $(seq 1 10); do
     curl -sf http://127.0.0.1:15721/health && break
