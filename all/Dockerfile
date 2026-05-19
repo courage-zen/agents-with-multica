@@ -11,9 +11,10 @@ RUN mkdir -p /out && \
 FROM alpine:3.20 AS multica-downloader
 ARG MULTICA_VERSION="0.3.2"
 ARG TARGETARCH
+ARG ARCH=${TARGETARCH}
 RUN mkdir -p /out && \
-    apk add --no-cache curl tar
-RUN case "${TARGETARCH}" in \
+    apk add --no-cache curl tar && \
+    case "${ARCH}" in \
     amd64) ARCH="amd64" ;; \
     arm64) ARCH="arm64" ;; \
     *)     ARCH="amd64" ;; \
@@ -27,9 +28,10 @@ RUN case "${TARGETARCH}" in \
 FROM alpine:3.20 AS opencode-downloader
 ARG OPENCODE_VERSION="v0.0.55"
 ARG TARGETARCH
+ARG ARCH=${TARGETARCH}
 RUN mkdir -p /out && \
-    apk add --no-cache curl tar
-RUN case "${TARGETARCH}" in \
+    apk add --no-cache curl tar && \
+    case "${ARCH}" in \
     amd64) ARCH="x86_64" ;; \
     arm64) ARCH="arm64" ;; \
     *)     ARCH="x86_64" ;; \
