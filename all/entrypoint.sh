@@ -2,14 +2,16 @@
 set -e
 
 if [ "$(id -u)" = "0" ]; then
-    mkdir -p /home/agent/.cc-proxy /home/agent/.multica /home/agent/.claude
+    mkdir -p /etc/multica /home/agent/.cc-proxy /home/agent/.multica /home/agent/.claude
     chown -R agent:agent /home/agent/.claude || true
     exec su -p -s /bin/bash agent -c "HOME=/home/agent exec $0"
 fi
 
-if [ ! -f ~/.multica/config.json ]; then
-    echo "ERROR: ~/.multica/config.json not found (mount it as read-only volume)" >&2; exit 1
+if [ ! -f /etc/multica/config.json ]; then
+    echo "ERROR: /etc/multica/config.json not found (mount it as read-only volume)" >&2; exit 1
 fi
+
+cp /etc/multica/config.json ~/.multica/config.json
 
 if [ ! -f ~/.cc-proxy/config.yaml ]; then
     echo "ERROR: ~/.cc-proxy/config.yaml not found (mount it as read-only volume)" >&2; exit 1
