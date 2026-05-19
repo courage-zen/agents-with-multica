@@ -7,7 +7,7 @@ set -e
 IMAGE="${IMAGE:-ghcr.io/courage-zen/agents-with-multica:latest-arm64}"
 CONTAINER_NAME="${CONTAINER_NAME:-my-agent}"
 
-MULTICA_CONFIG="${MULTICA_CONFIG:-./config/multica.json}"
+MULTICA_CONFIG="${MULTICA_CONFIG:-./config/multica-config.json}"
 CC_PROXY_CONFIG="${CC_PROXY_CONFIG:-./config/cc-proxy-config.yaml}"
 
 if [ ! -f "${MULTICA_CONFIG}" ]; then
@@ -20,10 +20,15 @@ if [ ! -f "${CC_PROXY_CONFIG}" ]; then
   exit 1
 fi
 
+RUNTIME_NAME="${MULTICA_AGENT_RUNTIME_NAME:-${CONTAINER_NAME}}"
+DEVICE_NAME="${MULTICA_DAEMON_DEVICE_NAME:-${CONTAINER_NAME}}"
+
 docker run \
   -d \
   --name "${CONTAINER_NAME}" \
   --privileged \
+  -e MULTICA_AGENT_RUNTIME_NAME="${RUNTIME_NAME}" \
+  -e MULTICA_DAEMON_DEVICE_NAME="${DEVICE_NAME}" \
   -v "${MULTICA_CONFIG}:/home/agent/.multica/config.json:ro" \
   -v "${CC_PROXY_CONFIG}:/home/agent/.cc-proxy/config.yaml:ro" \
   "${IMAGE}"
