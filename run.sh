@@ -25,7 +25,7 @@ docker run \
   --name "${CONTAINER_NAME}" \
   --privileged \
   -v "${MULTICA_CONFIG}:/home/agent/.multica/config.json:ro" \
-  -v "${CC_PROXY_CONFIG}:/etc/cc-proxy/config.yaml:ro" \
+  -v "${CC_PROXY_CONFIG}:/home/agent/.cc-proxy/config.yaml:ro" \
   "${IMAGE}"
 
 echo "容器已启动: ${CONTAINER_NAME}"
