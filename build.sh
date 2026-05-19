@@ -55,9 +55,9 @@ fi
 
 # Build tag
 if [ "$CN" == "true" ]; then
-    TAG="docker-agents-${AGENT}:${ARCH}-cn"
+    TAG="agents-with-multica-${AGENT}:${ARCH}-cn"
 else
-    TAG="docker-agents-${AGENT}:${ARCH}"
+    TAG="agents-with-multica-${AGENT}:${ARCH}"
 fi
 
 # Print what it's doing

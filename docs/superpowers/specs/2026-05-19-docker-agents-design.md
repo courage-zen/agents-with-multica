@@ -1,4 +1,4 @@
-# docker-agents 设计文档
+# agents-with-multica 设计文档
 
 ## 1. 概述
 
@@ -13,7 +13,7 @@
 ## 2. 目录结构
 
 ```
-docker-agents/
+agents-with-multica/
 ├── claude/
 │   ├── Dockerfile              # CI 构建，公共镜像源
 │   ├── Dockerfile.cn           # 本地/中国区构建
@@ -36,7 +36,7 @@ docker-agents/
 └── docs/
     └── superpowers/
         └── specs/
-            └── 2026-05-19-docker-agents-design.md
+            └── 2026-05-19-agents-with-multica-design.md
 ```
 
 ## 3. 统一配置文件
@@ -359,7 +359,7 @@ docker build \
   --build-arg CLAUDE_CODE_VERSION="${CLAUDE_CODE_VERSION}" \
   --build-arg OPENCODE_VERSION="${OPENCODE_VERSION}" \
   --build-arg TARGETARCH="${ARCH}" \
-  -t "docker-agents-${AGENT}:latest" \
+  -t "agents-with-multica-${AGENT}:latest" \
   .
 ```
 
@@ -373,9 +373,9 @@ docker build \
 使用 Docker buildx 多架构构建（linux/amd64, linux/arm64），推送到 GHCR。
 
 镜像命名（org: courage-zen）：
-- `ghcr.io/courage-zen/docker-agents-claude`
-- `ghcr.io/courage-zen/docker-agents-opencode`
-- `ghcr.io/courage-zen/docker-agents-all`
+- `ghcr.io/courage-zen/agents-with-multica-claude`
+- `ghcr.io/courage-zen/agents-with-multica-opencode`
+- `ghcr.io/courage-zen/agents-with-multica-all`
 
 标签：`latest` + `v{版本}` + `sha-{short}`，每个架构单独打标签（`latest-amd64`、`latest-arm64` 等）
 
@@ -385,7 +385,7 @@ docker build \
 用户运行容器
   docker run -v /path/to/config.yaml:/etc/agent/config.yaml \
              -e AGENT=claude \
-             docker-agents-all:latest
+             agents-with-multica-all:latest
 
 entrypoint.sh 读取 /etc/agent/config.yaml
   │

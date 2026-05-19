@@ -1,4 +1,4 @@
-# docker-agents
+# agents-with-multica
 
 Docker images for running AI coding agents (claude-code and opencode) with unified cloud infrastructure via [multica](https://github.com/multica-ai/multica).
 
@@ -6,18 +6,18 @@ Docker images for running AI coding agents (claude-code and opencode) with unifi
 
 | Image | GHCR |
 |---|---|
-| claude | `ghcr.io/courage-zen/docker-agents-claude:<tag>` |
-| opencode | `ghcr.io/courage-zen/docker-agents-opencode:<tag>` |
-| all | `ghcr.io/courage-zen/docker-agents-all:<tag>` |
+| claude | `ghcr.io/courage-zen/agents-with-multica-claude:<tag>` |
+| opencode | `ghcr.io/courage-zen/agents-with-multica-opencode:<tag>` |
+| all | `ghcr.io/courage-zen/agents-with-multica-all:<tag>` |
 
 Tags follow the pattern `<arch>[-cn]` where `<arch>` is `amd64` or `arm64`. The `-cn` variant uses Chinese proxy mirrors for base images.
 
 Example full image reference:
 
 ```
-ghcr.io/courage-zen/docker-agents-claude:amd64
-ghcr.io/courage-zen/docker-agents-opencode:arm64
-ghcr.io/courage-zen/docker-agents-all:amd64-cn
+ghcr.io/courage-zen/agents-with-multica-claude:amd64
+ghcr.io/courage-zen/agents-with-multica-opencode:arm64
+ghcr.io/courage-zen/agents-with-multica-all:amd64-cn
 ```
 
 The `all` image packages both agents and selects which one to run at startup via the `AGENT` environment variable (defaults to `claude`).
@@ -31,7 +31,7 @@ All images require a `config.yaml` mounted at `/etc/agent/config.yaml`. The cont
 ```sh
 docker run --rm \
   -v /path/to/config.yaml:/etc/agent/config.yaml \
-  ghcr.io/courage-zen/docker-agents-claude:amd64
+  ghcr.io/courage-zen/agents-with-multica-claude:amd64
 ```
 
 ### opencode
@@ -39,7 +39,7 @@ docker run --rm \
 ```sh
 docker run --rm \
   -v /path/to/config.yaml:/etc/agent/config.yaml \
-  ghcr.io/courage-zen/docker-agents-opencode:amd64
+  ghcr.io/courage-zen/agents-with-multica-opencode:amd64
 ```
 
 ### all
@@ -50,7 +50,7 @@ The `all` image supports both agents. Set `AGENT=claude` (default) or `AGENT=ope
 docker run --rm \
   -v /path/to/config.yaml:/etc/agent/config.yaml \
   -e AGENT=opencode \
-  ghcr.io/courage-zen/docker-agents-all:amd64
+  ghcr.io/courage-zen/agents-with-multica-all:amd64
 ```
 
 The `all` image also accepts `MULTICA_RUNTIME_NAME` (defaults to `Docker Agent`) to set the runtime name registered with multica.
@@ -111,7 +111,7 @@ Use the provided `build.sh` script. It reads versions from the agent's `versions
 ./build.sh opencode
 ```
 
-The resulting image is tagged `docker-agents-<agent>:<arch>[-cn]`.
+The resulting image is tagged `agents-with-multica-<agent>:<arch>[-cn]`.
 
 ## Version Management
 

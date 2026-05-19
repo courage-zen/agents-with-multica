@@ -1,8 +1,8 @@
-# docker-agents Implementation Plan
+# agents-with-multica Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 建立 docker-agents 项目，包含 Claude Code、OpenCode 和 all-in-one 三种 Docker 镜像的构建和配置体系，通过统一配置文件驱动各 agent 的动态配置。
+**Goal:** 建立 agents-with-multica 项目，包含 Claude Code、OpenCode 和 all-in-one 三种 Docker 镜像的构建和配置体系，通过统一配置文件驱动各 agent 的动态配置。
 
 **Architecture:** 每个 agent 独立目录，各自 Dockerfile + entrypoint.sh + versions.yaml。entrypoint 以 Python 脚本解析 /etc/agent/config.yaml 并转换为各 agent 所需配置格式。CI 按路径触发，构建双架构镜像分别推送到 GHCR。
 
@@ -13,7 +13,7 @@
 ## 文件结构
 
 ```
-docker-agents/
+agents-with-multica/
 ├── claude/
 │   ├── Dockerfile              # 构建：node + claude-code + cc-proxy + multica
 │   ├── Dockerfile.cn           # 中国区镜像源版本
@@ -811,7 +811,7 @@ BUILD_ARGS=(
 [ -n "$CLAUDE_CODE_VERSION" ] && BUILD_ARGS+=(--build-arg CLAUDE_CODE_VERSION="${CLAUDE_CODE_VERSION}")
 [ -n "$OPENCODE_VERSION" ] && BUILD_ARGS+=(--build-arg OPENCODE_VERSION="${OPENCODE_VERSION}")
 
-TAG="docker-agents-${AGENT}:${ARCH}${TAG_SUFFIX}"
+TAG="agents-with-multica-${AGENT}:${ARCH}${TAG_SUFFIX}"
 
 echo "Building ${TAG} ..."
 echo "  CC_PROXY_VERSION=$CC_PROXY_VERSION"
@@ -893,8 +893,8 @@ jobs:
           platforms: linux/amd64
           push: ${{ github.event_name == 'push' }}
           tags: |
-            ghcr.io/courage-zen/docker-agents-claude:latest-amd64
-            ghcr.io/courage-zen/docker-agents-claude:${{ steps.versions.outputs.CC_PROXY_VERSION }}-amd64
+            ghcr.io/courage-zen/agents-with-multica-claude:latest-amd64
+            ghcr.io/courage-zen/agents-with-multica-claude:${{ steps.versions.outputs.CC_PROXY_VERSION }}-amd64
           build-args: |
             CC_PROXY_VERSION=${{ steps.versions.outputs.CC_PROXY_VERSION }}
             MULTICA_VERSION=${{ steps.versions.outputs.MULTICA_VERSION }}
@@ -908,8 +908,8 @@ jobs:
           platforms: linux/arm64
           push: ${{ github.event_name == 'push' }}
           tags: |
-            ghcr.io/courage-zen/docker-agents-claude:latest-arm64
-            ghcr.io/courage-zen/docker-agents-claude:${{ steps.versions.outputs.CC_PROXY_VERSION }}-arm64
+            ghcr.io/courage-zen/agents-with-multica-claude:latest-arm64
+            ghcr.io/courage-zen/agents-with-multica-claude:${{ steps.versions.outputs.CC_PROXY_VERSION }}-arm64
           build-args: |
             CC_PROXY_VERSION=${{ steps.versions.outputs.CC_PROXY_VERSION }}
             MULTICA_VERSION=${{ steps.versions.outputs.MULTICA_VERSION }}
@@ -950,8 +950,8 @@ jobs:
           platforms: linux/amd64
           push: ${{ github.event_name == 'push' }}
           tags: |
-            ghcr.io/courage-zen/docker-agents-opencode:latest-amd64
-            ghcr.io/courage-zen/docker-agents-opencode:${{ steps.versions.outputs.OPENCODE_VERSION }}-amd64
+            ghcr.io/courage-zen/agents-with-multica-opencode:latest-amd64
+            ghcr.io/courage-zen/agents-with-multica-opencode:${{ steps.versions.outputs.OPENCODE_VERSION }}-amd64
           build-args: |
             MULTICA_VERSION=${{ steps.versions.outputs.MULTICA_VERSION }}
             OPENCODE_VERSION=${{ steps.versions.outputs.OPENCODE_VERSION }}
@@ -964,8 +964,8 @@ jobs:
           platforms: linux/arm64
           push: ${{ github.event_name == 'push' }}
           tags: |
-            ghcr.io/courage-zen/docker-agents-opencode:latest-arm64
-            ghcr.io/courage-zen/docker-agents-opencode:${{ steps.versions.outputs.OPENCODE_VERSION }}-arm64
+            ghcr.io/courage-zen/agents-with-multica-opencode:latest-arm64
+            ghcr.io/courage-zen/agents-with-multica-opencode:${{ steps.versions.outputs.OPENCODE_VERSION }}-arm64
           build-args: |
             MULTICA_VERSION=${{ steps.versions.outputs.MULTICA_VERSION }}
             OPENCODE_VERSION=${{ steps.versions.outputs.OPENCODE_VERSION }}
@@ -1009,8 +1009,8 @@ jobs:
           platforms: linux/amd64
           push: ${{ github.event_name == 'push' }}
           tags: |
-            ghcr.io/courage-zen/docker-agents-all:latest-amd64
-            ghcr.io/courage-zen/docker-agents-all:${{ steps.versions.outputs.CC_PROXY_VERSION }}-amd64
+            ghcr.io/courage-zen/agents-with-multica-all:latest-amd64
+            ghcr.io/courage-zen/agents-with-multica-all:${{ steps.versions.outputs.CC_PROXY_VERSION }}-amd64
           build-args: |
             CC_PROXY_VERSION=${{ steps.versions.outputs.CC_PROXY_VERSION }}
             MULTICA_VERSION=${{ steps.versions.outputs.MULTICA_VERSION }}
@@ -1025,8 +1025,8 @@ jobs:
           platforms: linux/arm64
           push: ${{ github.event_name == 'push' }}
           tags: |
-            ghcr.io/courage-zen/docker-agents-all:latest-arm64
-            ghcr.io/courage-zen/docker-agents-all:${{ steps.versions.outputs.CC_PROXY_VERSION }}-arm64
+            ghcr.io/courage-zen/agents-with-multica-all:latest-arm64
+            ghcr.io/courage-zen/agents-with-multica-all:${{ steps.versions.outputs.CC_PROXY_VERSION }}-arm64
           build-args: |
             CC_PROXY_VERSION=${{ steps.versions.outputs.CC_PROXY_VERSION }}
             MULTICA_VERSION=${{ steps.versions.outputs.MULTICA_VERSION }}
@@ -1052,7 +1052,7 @@ git commit -m "ci: add GitHub Actions workflow for multi-arch builds"
 - [ ] **Step 1: 创建 README.md**
 
 ```markdown
-# docker-agents
+# agents-with-multica
 
 管理多个 AI coding agent 的 Docker 镜像构建，支持 Claude Code、OpenCode 和 all-in-one 三种镜像。
 
@@ -1060,9 +1060,9 @@ git commit -m "ci: add GitHub Actions workflow for multi-arch builds"
 
 | 镜像 | 说明 | GHCR |
 |------|------|------|
-| `docker-agents-claude` | Claude Code + cc-proxy + multica | `ghcr.io/courage-zen/docker-agents-claude` |
-| `docker-agents-opencode` | OpenCode + multica | `ghcr.io/courage-zen/docker-agents-opencode` |
-| `docker-agents-all` | 所有 agent，通过 AGENT 环境变量选择 | `ghcr.io/courage-zen/docker-agents-all` |
+| `agents-with-multica-claude` | Claude Code + cc-proxy + multica | `ghcr.io/courage-zen/agents-with-multica-claude` |
+| `agents-with-multica-opencode` | OpenCode + multica | `ghcr.io/courage-zen/agents-with-multica-opencode` |
+| `agents-with-multica-all` | 所有 agent，通过 AGENT 环境变量选择 | `ghcr.io/courage-zen/agents-with-multica-all` |
 
 ## 使用方式
 
@@ -1095,16 +1095,16 @@ providers:
 ```bash
 # Claude 镜像
 docker run -v /path/to/config.yaml:/etc/agent/config.yaml \
-  docker-agents-claude:latest-amd64
+  agents-with-multica-claude:latest-amd64
 
 # OpenCode 镜像
 docker run -v /path/to/config.yaml:/etc/agent/config.yaml \
-  docker-agents-opencode:latest-amd64
+  agents-with-multica-opencode:latest-amd64
 
 # All-in-one，通过 AGENT 环境变量选择
 docker run -v /path/to/config.yaml:/etc/agent/config.yaml \
   -e AGENT=claude \
-  docker-agents-all:latest-amd64
+  agents-with-multica-all:latest-amd64
 ```
 
 ## 本地构建
@@ -1136,7 +1136,7 @@ git commit -m "docs: add README"
 
 ## 自检
 
-1. **Spec 覆盖检查** - 逐节对照 `2026-05-19-docker-agents-design.md`：
+1. **Spec 覆盖检查** - 逐节对照 `2026-05-19-agents-with-multica-design.md`：
    - [x] 目录结构（Task 1 文件结构已覆盖）
    - [x] claude/ 完整实现（Task 2）
    - [x] opencode/ 完整实现（Task 3）

@@ -75,13 +75,13 @@ jobs:
       - name: Build amd64
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ./claude
           file: ./claude/Dockerfile
           platforms: linux/amd64
           push: ${{ github.event_name == 'push' }}
           tags: |
-            ghcr.io/courage-zen/docker-agents-claude:latest-amd64
-            ghcr.io/courage-zen/docker-agents-claude:${{ steps.versions.outputs.CC_PROXY_VERSION }}-amd64
+            ghcr.io/courage-zen/agents-with-multica-claude:latest-amd64
+            ghcr.io/courage-zen/agents-with-multica-claude:${{ steps.versions.outputs.CC_PROXY_VERSION }}-amd64
           build-args: |
             CC_PROXY_VERSION=${{ steps.versions.outputs.CC_PROXY_VERSION }}
             MULTICA_VERSION=${{ steps.versions.outputs.MULTICA_VERSION }}
@@ -90,13 +90,13 @@ jobs:
       - name: Build arm64
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ./claude
           file: ./claude/Dockerfile
           platforms: linux/arm64
           push: ${{ github.event_name == 'push' }}
           tags: |
-            ghcr.io/courage-zen/docker-agents-claude:latest-arm64
-            ghcr.io/courage-zen/docker-agents-claude:${{ steps.versions.outputs.CC_PROXY_VERSION }}-arm64
+            ghcr.io/courage-zen/agents-with-multica-claude:latest-arm64
+            ghcr.io/courage-zen/agents-with-multica-claude:${{ steps.versions.outputs.CC_PROXY_VERSION }}-arm64
           build-args: |
             CC_PROXY_VERSION=${{ steps.versions.outputs.CC_PROXY_VERSION }}
             MULTICA_VERSION=${{ steps.versions.outputs.MULTICA_VERSION }}
@@ -134,13 +134,13 @@ jobs:
       - name: Build amd64
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ./opencode
           file: ./opencode/Dockerfile
           platforms: linux/amd64
           push: ${{ github.event_name == 'push' }}
           tags: |
-            ghcr.io/courage-zen/docker-agents-opencode:latest-amd64
-            ghcr.io/courage-zen/docker-agents-opencode:${{ steps.versions.outputs.OPENCODE_VERSION }}-amd64
+            ghcr.io/courage-zen/agents-with-multica-opencode:latest-amd64
+            ghcr.io/courage-zen/agents-with-multica-opencode:${{ steps.versions.outputs.OPENCODE_VERSION }}-amd64
           build-args: |
             MULTICA_VERSION=${{ steps.versions.outputs.MULTICA_VERSION }}
             OPENCODE_VERSION=${{ steps.versions.outputs.OPENCODE_VERSION }}
@@ -148,13 +148,13 @@ jobs:
       - name: Build arm64
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ./opencode
           file: ./opencode/Dockerfile
           platforms: linux/arm64
           push: ${{ github.event_name == 'push' }}
           tags: |
-            ghcr.io/courage-zen/docker-agents-opencode:latest-arm64
-            ghcr.io/courage-zen/docker-agents-opencode:${{ steps.versions.outputs.OPENCODE_VERSION }}-arm64
+            ghcr.io/courage-zen/agents-with-multica-opencode:latest-arm64
+            ghcr.io/courage-zen/agents-with-multica-opencode:${{ steps.versions.outputs.OPENCODE_VERSION }}-arm64
           build-args: |
             MULTICA_VERSION=${{ steps.versions.outputs.MULTICA_VERSION }}
             OPENCODE_VERSION=${{ steps.versions.outputs.OPENCODE_VERSION }}
@@ -195,13 +195,13 @@ jobs:
       - name: Build amd64
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ./all
           file: ./all/Dockerfile
           platforms: linux/amd64
           push: ${{ github.event_name == 'push' }}
           tags: |
-            ghcr.io/courage-zen/docker-agents-all:latest-amd64
-            ghcr.io/courage-zen/docker-agents-all:${{ steps.versions.outputs.CC_PROXY_VERSION }}-amd64
+            ghcr.io/courage-zen/agents-with-multica-all:latest-amd64
+            ghcr.io/courage-zen/agents-with-multica-all:${{ steps.versions.outputs.CC_PROXY_VERSION }}-amd64
           build-args: |
             CC_PROXY_VERSION=${{ steps.versions.outputs.CC_PROXY_VERSION }}
             MULTICA_VERSION=${{ steps.versions.outputs.MULTICA_VERSION }}
@@ -211,13 +211,13 @@ jobs:
       - name: Build arm64
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ./all
           file: ./all/Dockerfile
           platforms: linux/arm64
           push: ${{ github.event_name == 'push' }}
           tags: |
-            ghcr.io/courage-zen/docker-agents-all:latest-arm64
-            ghcr.io/courage-zen/docker-agents-all:${{ steps.versions.outputs.CC_PROXY_VERSION }}-arm64
+            ghcr.io/courage-zen/agents-with-multica-all:latest-arm64
+            ghcr.io/courage-zen/agents-with-multica-all:${{ steps.versions.outputs.CC_PROXY_VERSION }}-arm64
           build-args: |
             CC_PROXY_VERSION=${{ steps.versions.outputs.CC_PROXY_VERSION }}
             MULTICA_VERSION=${{ steps.versions.outputs.MULTICA_VERSION }}
