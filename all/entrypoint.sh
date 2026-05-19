@@ -1,48 +1,24 @@
 #!/bin/bash
 set -e
 
-# Switch from root to agent user
 if [ "$(id -u)" = "0" ]; then
     mkdir -p /etc/cc-proxy /home/agent/.multica /home/agent/.claude
+    # Symlink so multica reads from /etc mount without extra copy
+    ln -sf /etc/multica/config.json /home/agent/.multica/config.json
     chown -R agent:agent /home/agent
-
-    cat > /home/agent/.env <<EOF
-MULTICA_TOKEN=${MULTICA_TOKEN}
-MULTICA_WORKSPACE_ID=${MULTICA_WORKSPACE_ID}
-MULTICA_SERVER_URL=${MULTICA_SERVER_URL}
-MULTICA_AGENT_RUNTIME_NAME=${MULTICA_AGENT_RUNTIME_NAME}
-MULTICA_DAEMON_DEVICE_NAME=${MULTICA_DAEMON_DEVICE_NAME}
-EOF
-
-    exec su -s /bin/bash agent -c ". /home/agent/.env && exec $0"
+    exec su -s /bin/bash agent -c "exec $0"
 fi
 
-if [ -z "${MULTICA_TOKEN}" ]; then
-    echo "ERROR: MULTICA_TOKEN is required" >&2; exit 1
+if [ ! -f /etc/multica/config.json ]; then
+    echo "ERROR: /etc/multica/config.json not found (mount it as read-only volume)" >&2; exit 1
 fi
-if [ -z "${MULTICA_WORKSPACE_ID}" ]; then
-    echo "ERROR: MULTICA_WORKSPACE_ID is required" >&2; exit 1
-fi
-if [ -z "${MULTICA_SERVER_URL}" ]; then
-    echo "ERROR: MULTICA_SERVER_URL is required" >&2; exit 1
-fi
-
-mkdir -p ~/.multica
-cat > ~/.multica/config.json <<EOF
-{
-  "token": "${MULTICA_TOKEN}",
-  "workspace_id": "${MULTICA_WORKSPACE_ID}",
-  "server_url": "${MULTICA_SERVER_URL}"
-}
-EOF
-chmod 600 ~/.multica/config.json
-
-RUNTIME_NAME="${MULTICA_AGENT_RUNTIME_NAME:-Docker}"
-DEVICE_NAME="${MULTICA_DAEMON_DEVICE_NAME:-Docker}"
 
 if [ ! -f /etc/cc-proxy/config.yaml ]; then
     echo "ERROR: /etc/cc-proxy/config.yaml not found (mount it as read-only volume)" >&2; exit 1
 fi
+
+RUNTIME_NAME="${MULTICA_AGENT_RUNTIME_NAME:-Docker}"
+DEVICE_NAME="${MULTICA_DAEMON_DEVICE_NAME:-Docker}"
 
 sudo -n cc-proxy start -c /etc/cc-proxy &
 
