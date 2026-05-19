@@ -29,7 +29,7 @@ docker run \
   --privileged \
   -e MULTICA_AGENT_RUNTIME_NAME="${RUNTIME_NAME}" \
   -e MULTICA_DAEMON_DEVICE_NAME="${DEVICE_NAME}" \
-  -v "${MULTICA_CONFIG}:/home/agent/.multica/config.json:ro" \
+  -v "${MULTICA_CONFIG}:/etc/multica/config.json:ro" \
   -v "${CC_PROXY_CONFIG}:/home/agent/.cc-proxy/config.yaml:ro" \
   "${IMAGE}"
 
