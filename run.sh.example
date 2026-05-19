@@ -7,17 +7,13 @@ set -e
 IMAGE="${IMAGE:-ghcr.io/courage-zen/agents-with-multica:latest-arm64}"
 CONTAINER_NAME="${CONTAINER_NAME:-my-agent}"
 
-# --- multica 注册（必填）---
-MULTICA_TOKEN="${MULTICA_TOKEN:?请设置 MULTICA_TOKEN}"
-MULTICA_WORKSPACE_ID="${MULTICA_WORKSPACE_ID:?请设置 MULTICA_WORKSPACE_ID}"
-MULTICA_SERVER_URL="${MULTICA_SERVER_URL:?请设置 MULTICA_SERVER_URL}"
-
-# --- runtime 名称（可选）---
-MULTICA_AGENT_RUNTIME_NAME="${MULTICA_AGENT_RUNTIME_NAME:-$CONTAINER_NAME}"
-MULTICA_DAEMON_DEVICE_NAME="${MULTICA_DAEMON_DEVICE_NAME:-$CONTAINER_NAME}"
-
-# --- cc-proxy 配置文件路径（必填）---
+MULTICA_CONFIG="${MULTICA_CONFIG:-./config/multica.json}"
 CC_PROXY_CONFIG="${CC_PROXY_CONFIG:-./config/config.yaml}"
+
+if [ ! -f "${MULTICA_CONFIG}" ]; then
+  echo "ERROR: multica config not found: ${MULTICA_CONFIG}" >&2
+  exit 1
+fi
 
 if [ ! -f "${CC_PROXY_CONFIG}" ]; then
   echo "ERROR: cc-proxy config not found: ${CC_PROXY_CONFIG}" >&2
@@ -28,11 +24,7 @@ docker run \
   -d \
   --name "${CONTAINER_NAME}" \
   --privileged \
-  -e MULTICA_TOKEN="${MULTICA_TOKEN}" \
-  -e MULTICA_WORKSPACE_ID="${MULTICA_WORKSPACE_ID}" \
-  -e MULTICA_SERVER_URL="${MULTICA_SERVER_URL}" \
-  -e MULTICA_AGENT_RUNTIME_NAME="${MULTICA_AGENT_RUNTIME_NAME}" \
-  -e MULTICA_DAEMON_DEVICE_NAME="${MULTICA_DAEMON_DEVICE_NAME}" \
+  -v "${MULTICA_CONFIG}:/etc/multica/config.json:ro" \
   -v "${CC_PROXY_CONFIG}:/etc/cc-proxy/config.yaml:ro" \
   "${IMAGE}"
 
