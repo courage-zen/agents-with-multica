@@ -4,7 +4,7 @@ ARG CC_PROXY_VERSION="0.1.0"
 ARG TARGETARCH
 RUN mkdir -p /out && \
     apk add --no-cache curl && \
-    curl -L -o /out/cc-proxy "https://github.com/courage-zen/cc-proxy/releases/download/v${CC_PROXY_VERSION}/cc-proxy-${TARGETARCH}" && \
+    curl -fsSL -o /out/cc-proxy "https://github.com/courage-zen/cc-proxy/releases/download/v${CC_PROXY_VERSION}/cc-proxy-${TARGETARCH}" && \
     chmod +x /out/cc-proxy
 
 # Stage 2: download multica
