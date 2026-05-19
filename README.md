@@ -30,7 +30,7 @@ Requires both cc-proxy config (volume mount) and multica credentials (environmen
 
 ```sh
 docker run -d \
-  -v /path/to/config.yaml:/etc/cc-proxy/config.yaml:ro \
+  -v /path/to/cc-proxy-config.yaml:/home/agent/.cc-proxy/config.yaml:ro \
   -e MULTICA_TOKEN="mul_xxx" \
   -e MULTICA_WORKSPACE_ID="your-workspace-id" \
   -e MULTICA_SERVER_URL="http://your-server:18080" \
@@ -66,7 +66,7 @@ docker run -d \
 
 ### cc-proxy config (for claude agent only)
 
-Mount a cc-proxy `config.yaml` at `/etc/cc-proxy/config.yaml:ro`. This file defines the LLM providers and failover behavior.
+Mount a cc-proxy `cc-proxy-config.yaml` at `~/.cc-proxy/config.yaml:ro`. This file defines the LLM providers and failover behavior.
 
 ```yaml
 proxy:

@@ -8,7 +8,7 @@ IMAGE="${IMAGE:-ghcr.io/courage-zen/agents-with-multica:latest-arm64}"
 CONTAINER_NAME="${CONTAINER_NAME:-my-agent}"
 
 MULTICA_CONFIG="${MULTICA_CONFIG:-./config/multica.json}"
-CC_PROXY_CONFIG="${CC_PROXY_CONFIG:-./config/config.yaml}"
+CC_PROXY_CONFIG="${CC_PROXY_CONFIG:-./config/cc-proxy-config.yaml}"
 
 if [ ! -f "${MULTICA_CONFIG}" ]; then
   echo "ERROR: multica config not found: ${MULTICA_CONFIG}" >&2
