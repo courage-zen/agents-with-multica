@@ -1,20 +1,21 @@
-# cc-proxy 配置示例（测试用）
-# 实际使用时将文件复制到 config/config.yaml 并填入真实密钥
+# cc-proxy 配置示例
+# 实际使用时复制为 config/config.yaml 并填入真实密钥
+# 挂载到容器：docker run -v ./config/config.yaml:/etc/cc-proxy/config.yaml:ro
 
 proxy:
   listen: "127.0.0.1"
   port: 15721
-  mode: "global"
+  mode: "normal"
 
 failover:
   enabled: true
   auto_switch: true
 
 logging:
-  level: "debug"
+  level: "info"
 
 providers:
-  - name: test-provider
+  - name: my-provider
     type: openai_chat
     api_key: YOUR_API_KEY_HERE
     base_url: https://api.example.com

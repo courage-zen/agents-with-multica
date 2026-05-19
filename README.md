@@ -24,65 +24,77 @@ The `all` image packages both agents and selects which one to run at startup via
 
 ## Usage
 
-All images require a `config.yaml` mounted at `/etc/agent/config.yaml`. The container entrypoint reads this file, writes provider credentials into the appropriate runtime config directories, and starts the agent daemon.
-
 ### claude
 
+Requires both cc-proxy config (volume mount) and multica credentials (environment variables):
+
 ```sh
-docker run --rm \
-  -v /path/to/config.yaml:/etc/agent/config.yaml \
+docker run -d \
+  -v /path/to/config.yaml:/etc/cc-proxy/config.yaml:ro \
+  -e MULTICA_TOKEN="mul_xxx" \
+  -e MULTICA_WORKSPACE_ID="your-workspace-id" \
+  -e MULTICA_SERVER_URL="http://your-server:18080" \
+  -e MULTICA_RUNTIME_NAME="my-claude-agent" \
   ghcr.io/courage-zen/agents-with-multica-claude:amd64
 ```
 
 ### opencode
 
-```sh
-docker run --rm \
-  -v /path/to/config.yaml:/etc/agent/config.yaml \
-  ghcr.io/courage-zen/agents-with-multica-opencode:amd64
-```
-
-### all
-
-The `all` image supports both agents. Set `AGENT=claude` (default) or `AGENT=opencode`:
+Only needs multica credentials (no cc-proxy for opencode):
 
 ```sh
-docker run --rm \
-  -v /path/to/config.yaml:/etc/agent/config.yaml \
+docker run -d \
   -e AGENT=opencode \
+  -e MULTICA_TOKEN="mul_xxx" \
+  -e MULTICA_WORKSPACE_ID="your-workspace-id" \
+  -e MULTICA_SERVER_URL="http://your-server:18080" \
+  -e MULTICA_RUNTIME_NAME="my-opencode-agent" \
   ghcr.io/courage-zen/agents-with-multica-all:amd64
 ```
 
-The `all` image also accepts `MULTICA_RUNTIME_NAME` (defaults to `Docker Agent`) to set the runtime name registered with multica.
+### Environment Variables
+
+| Variable | Required | Description |
+|---|---|---|
+| `MULTICA_TOKEN` | Yes | Daemon token for multica server authentication |
+| `MULTICA_WORKSPACE_ID` | Yes | Workspace ID to register the runtime into |
+| `MULTICA_SERVER_URL` | Yes | Multica server URL (e.g. `http://117.72.202.195:18080`) |
+| `MULTICA_RUNTIME_NAME` | No | Display name for this runtime (default: `Docker-<agent>`) |
+| `AGENT` | No | Which agent to run: `claude` or `opencode` (default: `claude`) |
 
 ## Configuration
 
-Create a `config.yaml` with two required sections: `multica` and `providers`.
+### cc-proxy config (for claude agent only)
+
+Mount a cc-proxy `config.yaml` at `/etc/cc-proxy/config.yaml:ro`. This file defines the LLM providers and failover behavior.
 
 ```yaml
-# --- multica section ---
-# Credentials for the multica cloud runtime.
-# Obtain these from your multica dashboard at https://multica.ai.
-multica:
-  token: "your-multica-token-here"       # API token for authentication
-  workspace_id: "your-workspace-id-here" # Workspace identifier
+proxy:
+  listen: "127.0.0.1"
+  port: 15721
+  mode: "normal"
 
-# --- providers section ---
-# List of LLM providers to use. Only the first entry is currently used.
-# Each entry maps to an environment variable inside the container:
-#   openai_chat / openai  -> OPENAI_API_KEY
-#   anthropic             -> ANTHROPIC_API_KEY
-#   openrouter            -> OPENROUTER_API_KEY
-#   gemini                -> GEMINI_API_KEY
-#   groq                  -> GROQ_API_KEY
+failover:
+  enabled: true
+  auto_switch: true
+
+logging:
+  level: "info"
+
 providers:
-  - type: "anthropic"                    # Provider type (see mapping above)
-    api_key: "sk-ant-..."                # API key for this provider
-    # Other provider-specific fields are passed through to cc-proxy
-    # (e.g. base_url, model, etc.)
+  - name: "my-provider"
+    type: openai_chat
+    api_key: "YOUR_API_KEY_HERE"
+    base_url: "https://api.example.com"
+    models:
+      - claude-sonnet-4-5
+    priority: 1
+    enabled: true
 ```
 
-The `claude` and `all` (with `AGENT=claude`) images additionally start a local [cc-proxy](https://github.com/courage-zen/cc-proxy) relay on `127.0.0.1:15721` and configure claude-code to route traffic through it, enabling automatic failover across multiple providers.
+The `claude` agent starts a local [cc-proxy](https://github.com/courage-zen/cc-proxy) relay on `127.0.0.1:15721` and configures claude-code to route traffic through it, enabling automatic failover across providers.
+
+**Important:** On the multica web dashboard, set the agent's `custom_env` to include `ANTHROPIC_BASE_URL=http://127.0.0.1:15721`. This tells claude-code to route API calls through cc-proxy instead of requiring direct Anthropic login.
 
 ## Local Build
 
