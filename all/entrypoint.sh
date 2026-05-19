@@ -70,11 +70,7 @@ if providers:
 
 if os.environ.get("AGENT") == "claude":
     cc_proxy_cfg_dir = "/etc/cc-proxy"
-    # Create as root-owned (cc-proxy binds privileged port), agent can still write files
-    if not os.path.exists(cc_proxy_cfg_dir):
-        import subprocess
-        subprocess.run(["mkdir", "-p", cc_proxy_cfg_dir], check=True)
-        subprocess.run(["chown", "agent:agent", cc_proxy_cfg_dir], check=True)
+    # Dir created by root before switch to agent, no further action needed
 
     failover = config.get("failover", {})
     logging_cfg = config.get("logging", {})
