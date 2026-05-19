@@ -99,6 +99,7 @@ source ~/.agent_env
 
 case "${AGENT}" in
   claude)
+    . /home/agent/.agent_env
     sudo -n cc-proxy start -c /etc/cc-proxy &
     CC_PROXY_PID=$!
 
@@ -112,6 +113,7 @@ case "${AGENT}" in
     MULTICA_PID=$!
     ;;
   opencode)
+    . /home/agent/.agent_env
     multica daemon start --runtime-name "${MULTICA_RUNTIME_NAME:-Docker Agent}" &
     MULTICA_PID=$!
     ;;
