@@ -1,178 +1,19 @@
-name: Build and Push Docker Images
+name: Build and Push Docker Image
 
 on:
   push:
     branches:
       - main
     paths:
-      - 'claude/**'
-      - 'opencode/**'
       - 'all/**'
-      - 'Dockerfile'
       - '.github/workflows/build.yml'
   pull_request:
     paths:
-      - 'claude/**'
-      - 'opencode/**'
       - 'all/**'
-      - 'Dockerfile'
       - '.github/workflows/build.yml'
 
 jobs:
-  changes:
-    permissions:
-      contents: read
-    runs-on: ubuntu-latest
-    outputs:
-      claude: ${{ steps.filter.outputs.claude }}
-      opencode: ${{ steps.filter.outputs.opencode }}
-      all: ${{ steps.filter.outputs.all }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v2
-        id: filter
-        with:
-          filters: |
-            claude:
-              - 'claude/**'
-              - 'Dockerfile'
-              - '.github/workflows/build.yml'
-            opencode:
-              - 'opencode/**'
-              - 'Dockerfile'
-              - '.github/workflows/build.yml'
-            all:
-              - 'all/**'
-              - 'Dockerfile'
-              - '.github/workflows/build.yml'
-
-  build-claude:
-    needs: changes
-    if: needs.changes.outputs.claude == 'true'
-    permissions:
-      contents: read
-      packages: write
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract versions
-        id: versions
-        run: |
-          CC_PROXY_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('claude/versions.yaml'))['cc_proxy']['version'])")
-          MULTICA_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('claude/versions.yaml'))['multica']['version'])")
-          CLAUDE_CODE_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('claude/versions.yaml'))['claude_code']['version'])")
-          echo "CC_PROXY_VERSION=$CC_PROXY_VERSION" >> $GITHUB_OUTPUT
-          echo "MULTICA_VERSION=$MULTICA_VERSION" >> $GITHUB_OUTPUT
-          echo "CLAUDE_CODE_VERSION=$CLAUDE_CODE_VERSION" >> $GITHUB_OUTPUT
-
-      - name: Build amd64
-        uses: docker/build-push-action@v5
-        with:
-          context: ./claude
-          file: ./claude/Dockerfile
-          platforms: linux/amd64
-          push: ${{ github.event_name == 'push' }}
-          tags: |
-            ghcr.io/courage-zen/agents-with-multica-claude:latest-amd64
-            ghcr.io/courage-zen/agents-with-multica-claude:${{ steps.versions.outputs.CC_PROXY_VERSION }}-amd64
-          build-args: |
-            CC_PROXY_VERSION=${{ steps.versions.outputs.CC_PROXY_VERSION }}
-            MULTICA_VERSION=${{ steps.versions.outputs.MULTICA_VERSION }}
-            CLAUDE_CODE_VERSION=${{ steps.versions.outputs.CLAUDE_CODE_VERSION }}
-
-      - name: Build arm64
-        uses: docker/build-push-action@v5
-        with:
-          context: ./claude
-          file: ./claude/Dockerfile
-          platforms: linux/arm64
-          push: ${{ github.event_name == 'push' }}
-          tags: |
-            ghcr.io/courage-zen/agents-with-multica-claude:latest-arm64
-            ghcr.io/courage-zen/agents-with-multica-claude:${{ steps.versions.outputs.CC_PROXY_VERSION }}-arm64
-          build-args: |
-            CC_PROXY_VERSION=${{ steps.versions.outputs.CC_PROXY_VERSION }}
-            MULTICA_VERSION=${{ steps.versions.outputs.MULTICA_VERSION }}
-            CLAUDE_CODE_VERSION=${{ steps.versions.outputs.CLAUDE_CODE_VERSION }}
-
-  build-opencode:
-    needs: changes
-    if: needs.changes.outputs.opencode == 'true'
-    permissions:
-      contents: read
-      packages: write
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract versions
-        id: versions
-        run: |
-          MULTICA_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('opencode/versions.yaml'))['multica']['version'])")
-          OPENCODE_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('opencode/versions.yaml'))['opencode']['version'])")
-          echo "MULTICA_VERSION=$MULTICA_VERSION" >> $GITHUB_OUTPUT
-          echo "OPENCODE_VERSION=$OPENCODE_VERSION" >> $GITHUB_OUTPUT
-
-      - name: Build amd64
-        uses: docker/build-push-action@v5
-        with:
-          context: ./opencode
-          file: ./opencode/Dockerfile
-          platforms: linux/amd64
-          push: ${{ github.event_name == 'push' }}
-          tags: |
-            ghcr.io/courage-zen/agents-with-multica-opencode:latest-amd64
-            ghcr.io/courage-zen/agents-with-multica-opencode:${{ steps.versions.outputs.OPENCODE_VERSION }}-amd64
-          build-args: |
-            MULTICA_VERSION=${{ steps.versions.outputs.MULTICA_VERSION }}
-            OPENCODE_VERSION=${{ steps.versions.outputs.OPENCODE_VERSION }}
-
-      - name: Build arm64
-        uses: docker/build-push-action@v5
-        with:
-          context: ./opencode
-          file: ./opencode/Dockerfile
-          platforms: linux/arm64
-          push: ${{ github.event_name == 'push' }}
-          tags: |
-            ghcr.io/courage-zen/agents-with-multica-opencode:latest-arm64
-            ghcr.io/courage-zen/agents-with-multica-opencode:${{ steps.versions.outputs.OPENCODE_VERSION }}-arm64
-          build-args: |
-            MULTICA_VERSION=${{ steps.versions.outputs.MULTICA_VERSION }}
-            OPENCODE_VERSION=${{ steps.versions.outputs.OPENCODE_VERSION }}
-
-  build-all:
-    needs: changes
-    if: needs.changes.outputs.all == 'true'
+  build:
     permissions:
       contents: read
       packages: write
@@ -214,8 +55,8 @@ jobs:
           platforms: linux/amd64
           push: ${{ github.event_name == 'push' }}
           tags: |
-            ghcr.io/courage-zen/agents-with-multica-all:latest-amd64
-            ghcr.io/courage-zen/agents-with-multica-all:${{ steps.versions.outputs.CC_PROXY_VERSION }}-amd64
+            ghcr.io/courage-zen/agents-with-multica:latest-amd64
+            ghcr.io/courage-zen/agents-with-multica:${{ steps.versions.outputs.CC_PROXY_VERSION }}-amd64
           build-args: |
             CC_PROXY_VERSION=${{ steps.versions.outputs.CC_PROXY_VERSION }}
             MULTICA_VERSION=${{ steps.versions.outputs.MULTICA_VERSION }}
@@ -230,8 +71,8 @@ jobs:
           platforms: linux/arm64
           push: ${{ github.event_name == 'push' }}
           tags: |
-            ghcr.io/courage-zen/agents-with-multica-all:latest-arm64
-            ghcr.io/courage-zen/agents-with-multica-all:${{ steps.versions.outputs.CC_PROXY_VERSION }}-arm64
+            ghcr.io/courage-zen/agents-with-multica:latest-arm64
+            ghcr.io/courage-zen/agents-with-multica:${{ steps.versions.outputs.CC_PROXY_VERSION }}-arm64
           build-args: |
             CC_PROXY_VERSION=${{ steps.versions.outputs.CC_PROXY_VERSION }}
             MULTICA_VERSION=${{ steps.versions.outputs.MULTICA_VERSION }}
