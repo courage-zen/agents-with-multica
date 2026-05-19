@@ -3,6 +3,14 @@ set -e
 
 AGENT="${AGENT:-claude}"
 
+# Need root for cc-proxy port binding, agent user for everything else
+if [ "$(id -u)" = "0" ]; then
+    # Running as root - setup dirs then switch to agent user
+    mkdir -p /etc/cc-proxy /root/.multica /root/.claude /home/agent
+    chown -R agent:agent /home/agent /etc/cc-proxy /root/.multica /root/.claude
+    exec su -s /bin/bash agent -c "exec $0 $@"
+fi
+
 # Check for config file (Python will search both extensions)
 if [ ! -f "/etc/agent/config.yaml" ] && [ ! -f "/etc/agent/config.yml" ]; then
     echo "ERROR: Config file not found at /etc/agent/config.yaml or /etc/agent/config.yml" >&2
@@ -93,7 +101,7 @@ PYEOF
 
 case "${AGENT}" in
   claude)
-    cc-proxy start -c /etc/cc-proxy &
+    sudo cc-proxy start -c /etc/cc-proxy &
     CC_PROXY_PID=$!
 
     # Wait for cc-proxy to be ready
