@@ -299,7 +299,7 @@ cc_proxy:
   version: "0.1.0"
   repo: "courage-zen/cc-proxy"
 multica:
-  version: "0.3.0"
+  version: "0.3.2"
   repo: "multica-ai/multica"
 claude_code:
   version: "2.1.100"
@@ -308,7 +308,7 @@ claude_code:
 ```yaml
 # opencode/versions.yaml
 multica:
-  version: "0.3.0"
+  version: "0.3.2"
   repo: "multica-ai/multica"
 opencode:
   version: "v0.0.55"
@@ -321,7 +321,7 @@ cc_proxy:
   version: "0.1.0"
   repo: "courage-zen/cc-proxy"
 multica:
-  version: "0.3.0"
+  version: "0.3.2"
   repo: "multica-ai/multica"
 claude_code:
   version: "2.1.100"
@@ -372,12 +372,12 @@ docker build \
 
 使用 Docker buildx 多架构构建（linux/amd64, linux/arm64），推送到 GHCR。
 
-镜像命名：
-- `ghcr.io/<org>/docker-agents-claude`
-- `ghcr.io/<org>/docker-agents-opencode`
-- `ghcr.io/<org>/docker-agents-all`
+镜像命名（org: courage-zen）：
+- `ghcr.io/courage-zen/docker-agents-claude`
+- `ghcr.io/courage-zen/docker-agents-opencode`
+- `ghcr.io/courage-zen/docker-agents-all`
 
-标签：`latest` + `v{版本}` + `sha-{short}`
+标签：`latest` + `v{版本}` + `sha-{short}`，每个架构单独打标签（`latest-amd64`、`latest-arm64` 等）
 
 ## 8. 数据流总览
 
