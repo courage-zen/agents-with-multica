@@ -7,6 +7,15 @@ AGENT="${1:-all}"
 ARCH="${2:-amd64}"
 CN="${3:-false}"
 
+# Docker daemon pre-check
+docker info > /dev/null 2>&1 || { echo "Error: Docker is not available or daemon is not running" >&2; exit 1; }
+
+# Validate ARCH
+if [ "$ARCH" != "amd64" ] && [ "$ARCH" != "arm64" ]; then
+    echo "Error: ARCH must be 'amd64' or 'arm64'" >&2
+    exit 1
+fi
+
 # Validate agent directory exists
 if [ ! -d "${SCRIPT_DIR}/${AGENT}" ]; then
     echo "Error: agent directory not found: ${SCRIPT_DIR}/${AGENT}"
@@ -88,4 +97,7 @@ fi
 BUILD_ARGS+=("--build-arg" "TARGETARCH=${ARCH}")
 
 # Run docker build
-docker build -f "${SCRIPT_DIR}/${DOCKERFILE}" "${BUILD_ARGS[@]}" -t "${TAG}" "${SCRIPT_DIR}"
+docker build --progress=plain -f "${SCRIPT_DIR}/${DOCKERFILE}" "${BUILD_ARGS[@]}" -t "${TAG}" "${SCRIPT_DIR}" || {
+    echo "Error: docker build failed for ${TAG}" >&2
+    exit 1
+}
