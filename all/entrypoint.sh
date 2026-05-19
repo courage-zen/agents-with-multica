@@ -3,11 +3,10 @@ set -e
 
 AGENT="${AGENT:-claude}"
 
-# Need root for cc-proxy port binding, agent user for everything else
 if [ "$(id -u)" = "0" ]; then
     # Running as root - setup dirs then switch to agent user
     mkdir -p /etc/cc-proxy /root/.multica /root/.claude /home/agent
-    chown -R agent:agent /home/agent /etc/cc-proxy /root/.multica /root/.claude
+    chown -R agent:agent /home/agent /root/.multica /root/.claude /etc/cc-proxy
     exec su -s /bin/bash agent -c "exec $0 $@"
 fi
 
@@ -71,7 +70,11 @@ if providers:
 
 if os.environ.get("AGENT") == "claude":
     cc_proxy_cfg_dir = "/etc/cc-proxy"
-    os.makedirs(cc_proxy_cfg_dir, exist_ok=True)
+    # Create as root-owned (cc-proxy binds privileged port), agent can still write files
+    if not os.path.exists(cc_proxy_cfg_dir):
+        import subprocess
+        subprocess.run(["mkdir", "-p", cc_proxy_cfg_dir], check=True)
+        subprocess.run(["chown", "agent:agent", cc_proxy_cfg_dir], check=True)
 
     failover = config.get("failover", {})
     logging_cfg = config.get("logging", {})
