@@ -3,7 +3,7 @@ set -e
 
 if [ "$(id -u)" = "0" ]; then
     mkdir -p /etc/multica /home/agent/.cc-proxy /home/agent/.multica /home/agent/.claude
-    chown -R agent:agent /home/agent/.claude || true
+    chown agent:agent /home/agent/.multica /home/agent/.cc-proxy /home/agent/.claude /home/agent
     exec su -p -s /bin/bash agent -c "HOME=/home/agent exec $0"
 fi
 
