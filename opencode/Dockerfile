@@ -8,8 +8,8 @@ RUN apk add --no-cache curl tar
 
 RUN mkdir -p /out
 
-ARG ARCH
-RUN case "${ARCH:-amd64}" in \
+ARG ARCH=${TARGETARCH}
+RUN case "${ARCH}" in \
       amd64) ARCH_MAPPED="amd64" ;; \
       arm64) ARCH_MAPPED="arm64" ;; \
       *)     ARCH_MAPPED="amd64" ;; \
@@ -30,8 +30,8 @@ RUN apk add --no-cache curl tar
 
 RUN mkdir -p /out
 
-ARG ARCH
-RUN case "${ARCH:-amd64}" in \
+ARG ARCH=${TARGETARCH}
+RUN case "${ARCH}" in \
       amd64) ARCH_MAPPED="x86_64" ;; \
       arm64) ARCH_MAPPED="arm64" ;; \
       *)     ARCH_MAPPED="x86_64" ;; \

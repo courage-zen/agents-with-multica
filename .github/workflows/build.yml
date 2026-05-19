@@ -19,7 +19,31 @@ on:
       - '.github/workflows/build.yml'
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      claude: ${{ steps.filter.outputs.claude }}
+      opencode: ${{ steps.filter.outputs.opencode }}
+      all: ${{ steps.filter.outputs.all }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            claude:
+              - 'claude/**'
+              - 'Dockerfile'
+            opencode:
+              - 'opencode/**'
+              - 'Dockerfile'
+            all:
+              - 'all/**'
+              - 'Dockerfile'
+
   build-claude:
+    needs: changes
+    if: needs.changes.outputs.claude == 'true' || github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -79,6 +103,8 @@ jobs:
             CLAUDE_CODE_VERSION=${{ steps.versions.outputs.CLAUDE_CODE_VERSION }}
 
   build-opencode:
+    needs: changes
+    if: needs.changes.outputs.opencode == 'true' || github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -134,6 +160,8 @@ jobs:
             OPENCODE_VERSION=${{ steps.versions.outputs.OPENCODE_VERSION }}
 
   build-all:
+    needs: changes
+    if: needs.changes.outputs.all == 'true' || github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
