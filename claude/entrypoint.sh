@@ -33,6 +33,8 @@ multica_config = {
     'token': multica_cfg.get('token', ''),
     'workspace_id': multica_cfg.get('workspace_id', '')
 }
+if multica_cfg.get('server_url'):
+    multica_config['server_url'] = multica_cfg.get('server_url')
 
 os.makedirs('/root/.multica', exist_ok=True)
 with open('/root/.multica/config.json', 'w') as f:
