@@ -28,31 +28,23 @@ if [ ! -f "${SCRIPT_DIR}/${AGENT}/versions.yaml" ]; then
     exit 1
 fi
 
-# Read versions from YAML
-VERSIONS=$(python3 -c "
-import yaml, sys
-with open('${SCRIPT_DIR}/${AGENT}/versions.yaml') as f:
-    data = yaml.safe_load(f)
-cc_proxy_version = data.get('cc_proxy', {}).get('version', '')
-multica_version = data.get('multica', {}).get('version', '')
-claude_code_version = data.get('claude_code', {}).get('version', '')
-opencode_version = data.get('opencode', {}).get('version', '')
-print(f'CC_PROXY_VERSION={cc_proxy_version}')
-print(f'MULTICA_VERSION={multica_version}')
-print(f'CLAUDE_CODE_VERSION={claude_code_version}')
-print(f'OPENCODE_VERSION={opencode_version}')
-")
-
-# Parse versions into associative array
-declare -A VERS
-while IFS='=' read -r key value; do
-    VERS["$key"]="$value"
-done <<< "$VERSIONS"
-
-CC_PROXY_VERSION="${VERS[CC_PROXY_VERSION]}"
-MULTICA_VERSION="${VERS[MULTICA_VERSION]}"
-CLAUDE_CODE_VERSION="${VERS[CLAUDE_CODE_VERSION]}"
-OPENCODE_VERSION="${VERS[OPENCODE_VERSION]}"
+# Read versions from YAML with proper error propagation
+CC_PROXY_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('${SCRIPT_DIR}/${AGENT}/versions.yaml'))['cc_proxy']['version'])" 2>&1) || {
+    echo "Error: failed to read cc_proxy version from ${SCRIPT_DIR}/${AGENT}/versions.yaml" >&2
+    exit 1
+}
+MULTICA_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('${SCRIPT_DIR}/${AGENT}/versions.yaml'))['multica']['version'])" 2>&1) || {
+    echo "Error: failed to read multica version from ${SCRIPT_DIR}/${AGENT}/versions.yaml" >&2
+    exit 1
+}
+CLAUDE_CODE_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('${SCRIPT_DIR}/${AGENT}/versions.yaml'))['claude_code']['version'])" 2>&1) || {
+    echo "Error: failed to read claude_code version from ${SCRIPT_DIR}/${AGENT}/versions.yaml" >&2
+    exit 1
+}
+OPENCODE_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('${SCRIPT_DIR}/${AGENT}/versions.yaml'))['opencode']['version'])" 2>&1) || {
+    echo "Error: failed to read opencode version from ${SCRIPT_DIR}/${AGENT}/versions.yaml" >&2
+    exit 1
+}
 
 # Select Dockerfile
 if [ "$CN" == "true" ]; then
