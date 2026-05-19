@@ -32,9 +32,14 @@ os.makedirs(os.path.dirname(multica_cfg), exist_ok=True)
 
 token = config.get("multica", {}).get("token", "")
 workspace_id = config.get("multica", {}).get("workspace_id", "")
+server_url = config.get("multica", {}).get("server_url", "")
+
+cfg_data = {"token": token, "workspace_id": workspace_id}
+if server_url:
+    cfg_data["server_url"] = server_url
 
 with open(multica_cfg, "w") as f:
-    json.dump({"token": token, "workspace_id": workspace_id}, f, indent=2)
+    json.dump(cfg_data, f, indent=2)
 
 os.chmod(multica_cfg, 0o600)
 
