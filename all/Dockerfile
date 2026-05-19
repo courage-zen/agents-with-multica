@@ -47,8 +47,7 @@ ARG CLAUDE_CODE_VERSION="2.1.100"
 RUN apt-get update && \
     apt-get install -y --no-install-recommends python3 python3-yaml git ca-certificates curl sudo && \
     rm -rf /var/lib/apt/lists/* && \
-    useradd -m -s /bin/bash agent && \
-    echo "agent ALL=(ALL) NOPASSWD: /usr/local/bin/cc-proxy" >> /etc/sudoers.d/agent
+    useradd -m -s /bin/bash agent
 RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
 COPY --from=cc-proxy-downloader /out/cc-proxy /usr/local/bin/cc-proxy
 COPY --from=multica-downloader /out/multica /usr/local/bin/multica
@@ -57,5 +56,4 @@ COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh && \
     chown -R agent:agent /home/agent
 ENV CC_SWITCH_CONFIG_DIR=/etc/cc-proxy
-USER agent
 ENTRYPOINT ["/entrypoint.sh"]
