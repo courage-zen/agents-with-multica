@@ -3,11 +3,15 @@ set -e
 
 AGENT="${AGENT:-claude}"
 
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "ERROR: Config file not found at $CONFIG_FILE" >&2
+    exit 1
+fi
+
 python3 << 'PYEOF'
 import os
 import json
 import yaml
-import glob
 
 config_path = None
 for path in ["/etc/agent/config.yaml", "/etc/agent/config.yml"]:
@@ -83,7 +87,14 @@ PYEOF
 
 case "${AGENT}" in
   claude)
-    cc-proxy &
+    cc-proxy start -c /etc/cc-proxy &
+
+    # Wait for cc-proxy to be ready
+    for i in $(seq 1 10); do
+        curl -sf http://127.0.0.1:15721/health && break
+        sleep 1
+    done
+
     exec multica daemon start --runtime-name "${MULTICA_RUNTIME_NAME:-Docker Agent}"
     ;;
   opencode)
