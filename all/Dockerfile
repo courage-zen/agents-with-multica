@@ -45,7 +45,7 @@ RUN mkdir -p /out && \
 FROM node:24-bookworm-slim
 ARG CLAUDE_CODE_VERSION="2.1.100"
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends python3 python3-yaml git ca-certificates && \
+    apt-get install -y --no-install-recommends python3 python3-yaml git ca-certificates curl && \
     rm -rf /var/lib/apt/lists/*
 RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
 COPY --from=cc-proxy-downloader /out/cc-proxy /usr/local/bin/cc-proxy

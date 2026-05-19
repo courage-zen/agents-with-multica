@@ -46,7 +46,7 @@ RUN case "${ARCH}" in \
 FROM node:24-bookworm-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      python3 python3-yaml git ca-certificates \
+      python3 python3-yaml git ca-certificates curl \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=multica-downloader /out/multica /usr/local/bin/multica
