@@ -43,7 +43,7 @@ jobs:
 
   build-claude:
     needs: changes
-    if: needs.changes.outputs.claude == 'true' || github.event_name == 'push'
+    if: needs.changes.outputs.claude == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -104,7 +104,7 @@ jobs:
 
   build-opencode:
     needs: changes
-    if: needs.changes.outputs.opencode == 'true' || github.event_name == 'push'
+    if: needs.changes.outputs.opencode == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -161,7 +161,7 @@ jobs:
 
   build-all:
     needs: changes
-    if: needs.changes.outputs.all == 'true' || github.event_name == 'push'
+    if: needs.changes.outputs.all == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

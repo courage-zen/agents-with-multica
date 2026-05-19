@@ -3,8 +3,9 @@ set -e
 
 AGENT="${AGENT:-claude}"
 
-if [ ! -f "$CONFIG_FILE" ]; then
-    echo "ERROR: Config file not found at $CONFIG_FILE" >&2
+# Check for config file (Python will search both extensions)
+if [ ! -f "/etc/agent/config.yaml" ] && [ ! -f "/etc/agent/config.yml" ]; then
+    echo "ERROR: Config file not found at /etc/agent/config.yaml or /etc/agent/config.yml" >&2
     exit 1
 fi
 
