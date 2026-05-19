@@ -3,14 +3,12 @@ set -e
 
 if [ "$(id -u)" = "0" ]; then
     mkdir -p /etc/cc-proxy /home/agent/.multica /home/agent/.claude
-    # Symlink so multica reads from /etc mount without extra copy
-    ln -sf /etc/multica/config.json /home/agent/.multica/config.json
     chown -R agent:agent /home/agent
     exec su -s /bin/bash agent -c "exec $0"
 fi
 
-if [ ! -f /etc/multica/config.json ]; then
-    echo "ERROR: /etc/multica/config.json not found (mount it as read-only volume)" >&2; exit 1
+if [ ! -f ~/.multica/config.json ]; then
+    echo "ERROR: ~/.multica/config.json not found (mount it as read-only volume)" >&2; exit 1
 fi
 
 if [ ! -f /etc/cc-proxy/config.yaml ]; then

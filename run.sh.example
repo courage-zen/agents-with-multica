@@ -24,7 +24,7 @@ docker run \
   -d \
   --name "${CONTAINER_NAME}" \
   --privileged \
-  -v "${MULTICA_CONFIG}:/etc/multica/config.json:ro" \
+  -v "${MULTICA_CONFIG}:/home/agent/.multica/config.json:ro" \
   -v "${CC_PROXY_CONFIG}:/etc/cc-proxy/config.yaml:ro" \
   "${IMAGE}"
 
