@@ -4,8 +4,11 @@ FROM alpine:3.20 AS cc-proxy-downloader
 ARG CC_PROXY_VERSION="0.1.0"
 ARG TARGETARCH
 
-RUN apk add --no-cache curl \
-    && curl -L -o /out/cc-proxy "https://github.com/courage-zen/cc-proxy/releases/download/v${CC_PROXY_VERSION}/cc-proxy-${TARGETARCH}" \
+RUN mkdir -p /out \
+    && apk add --no-cache curl \
+    && curl -fsSL \
+      "https://github.com/courage-zen/cc-proxy/releases/download/v${CC_PROXY_VERSION}/cc-proxy-${TARGETARCH}" \
+      -o /out/cc-proxy \
     && chmod +x /out/cc-proxy
 
 # Stage 2: Download multica
@@ -14,15 +17,17 @@ FROM alpine:3.20 AS multica-downloader
 ARG MULTICA_VERSION="0.3.2"
 ARG TARGETARCH
 
-RUN apk add --no-cache curl tar
-
-RUN case "${TARGETARCH}" in \
-         amd64) ARCH="amd64" ;; \
-         arm64) ARCH="arm64" ;; \
-         *)     ARCH="amd64" ;; \
+RUN mkdir -p /out \
+    && apk add --no-cache curl tar \
+    && case "${TARGETARCH}" in \
+        amd64) ARCH="amd64" ;; \
+        arm64) ARCH="arm64" ;; \
+        *) ARCH="amd64" ;; \
     esac \
-    && curl -L -o /tmp/multica.tar.gz "https://github.com/multica-ai/multica/releases/download/v${MULTICA_VERSION}/multica-cli-${MULTICA_VERSION}-linux-${ARCH}.tar.gz" \
-    && tar -xzf /tmp/multica.tar.gz -C /out \
+    && curl -fsSL \
+      "https://github.com/multica-ai/multica/releases/download/v${MULTICA_VERSION}/multica-cli-${MULTICA_VERSION}-linux-${ARCH}.tar.gz" \
+      -o /tmp/multica.tar.gz \
+    && tar -xzf /tmp/multica.tar.gz -C /out multica \
     && chmod +x /out/multica \
     && rm -f /tmp/multica.tar.gz
 
