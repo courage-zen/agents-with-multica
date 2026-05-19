@@ -34,12 +34,15 @@ jobs:
             claude:
               - 'claude/**'
               - 'Dockerfile'
+              - '.github/workflows/build.yml'
             opencode:
               - 'opencode/**'
               - 'Dockerfile'
+              - '.github/workflows/build.yml'
             all:
               - 'all/**'
               - 'Dockerfile'
+              - '.github/workflows/build.yml'
 
   build-claude:
     needs: changes
