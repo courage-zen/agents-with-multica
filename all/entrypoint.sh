@@ -50,23 +50,19 @@ with open(multica_cfg, "w") as f:
 
 os.chmod(multica_cfg, 0o600)
 
+# Write env vars to file for bash to source
+env_file = os.path.join(os.path.expanduser("~"), ".agent_env")
 providers = config.get("providers", [])
+api_key = None
 if providers:
     first = providers[0]
     api_key = first.get("api_key", "")
-    provider_type = first.get("type", "")
 
+with open(env_file, "w") as f:
     if api_key:
-        var_map = {
-            "openai_chat": "OPENAI_API_KEY",
-            "openai": "OPENAI_API_KEY",
-            "anthropic": "ANTHROPIC_API_KEY",
-            "openrouter": "OPENROUTER_API_KEY",
-            "gemini": "GEMINI_API_KEY",
-            "groq": "GROQ_API_KEY",
-        }
-        env_var = var_map.get(provider_type, "OPENAI_API_KEY")
-        os.environ[env_var] = api_key
+        f.write(f"export OPENAI_API_KEY={api_key}\n")
+    else:
+        f.write("export ANTHROPIC_API_KEY=dummy\n")
 
 if os.environ.get("AGENT") == "claude":
     cc_proxy_cfg_dir = "/etc/cc-proxy"
@@ -97,6 +93,9 @@ if os.environ.get("AGENT") == "claude":
     with open(settings_path, "w") as f:
         json.dump({"apiBaseUrl": "http://127.0.0.1:15721"}, f)
 PYEOF
+
+# Source env vars from file written by Python
+source ~/.agent_env
 
 case "${AGENT}" in
   claude)
