@@ -25,7 +25,7 @@ cc_proxy_config = {
 
 os.makedirs('/etc/cc-proxy', exist_ok=True)
 with open('/etc/cc-proxy/config.yaml', 'w') as f:
-    yaml.dump(cc_proxy_config, f)
+    yaml.dump(cc_proxy_config, f, default_flow_style=False)
 
 # Write multica config
 multica_cfg = config.get('multica', {})
@@ -49,6 +49,12 @@ PYEOF
 
 # Start cc-proxy in background
 cc-proxy start -c /etc/cc-proxy &
+
+# Wait for cc-proxy to be ready
+for i in $(seq 1 10); do
+    curl -sf http://127.0.0.1:15721/health && break
+    sleep 1
+done
 
 # Start multica daemon
 exec multica daemon start --runtime-name "${MULTICA_RUNTIME_NAME:-Docker Agent}"
