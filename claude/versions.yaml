@@ -1,0 +1,8 @@
+cc_proxy:
+  version: "0.1.0"
+  repo: "courage-zen/cc-proxy"
+multica:
+  version: "0.3.2"
+  repo: "multica-ai/multica"
+claude_code:
+  version: "2.1.100"

@@ -1,0 +1,6 @@
+multica:
+  version: "0.3.2"
+  repo: "multica-ai/multica"
+opencode:
+  version: "v0.0.55"
+  repo: "opencode-ai/opencode"
