@@ -94,6 +94,7 @@ PYEOF
 case "${AGENT}" in
   claude)
     cc-proxy start -c /etc/cc-proxy &
+    CC_PROXY_PID=$!
 
     # Wait for cc-proxy to be ready
     for i in $(seq 1 10); do
@@ -101,13 +102,18 @@ case "${AGENT}" in
         sleep 1
     done
 
-    exec multica daemon start --runtime-name "${MULTICA_RUNTIME_NAME:-Docker Agent}"
+    multica daemon start --runtime-name "${MULTICA_RUNTIME_NAME:-Docker Agent}" &
+    MULTICA_PID=$!
     ;;
   opencode)
-    exec multica daemon start --runtime-name "${MULTICA_RUNTIME_NAME:-Docker Agent}"
+    multica daemon start --runtime-name "${MULTICA_RUNTIME_NAME:-Docker Agent}" &
+    MULTICA_PID=$!
     ;;
   *)
     echo "Unknown agent: ${AGENT}" >&2
     exit 1
     ;;
 esac
+
+# Wait for any background process to exit, then exit
+wait
