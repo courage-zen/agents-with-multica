@@ -51,5 +51,7 @@ COPY --from=multica-downloader /out/multica /usr/local/bin/multica
 COPY --from=claude-downloader /out/claude /usr/local/bin/claude
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh && \
+    mkdir -p /home/agent/wiki && \
     chown -R agent:agent /home/agent
+WORKDIR /home/agent
 ENTRYPOINT ["/entrypoint.sh"]
