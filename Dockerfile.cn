@@ -1,6 +1,6 @@
 # Stage 1: download cc-proxy
-FROM alpine:3.20 AS cc-proxy-downloader
-ARG CC_PROXY_VERSION="0.1.0"
+FROM docker.1ms.run/alpine:3.20 AS cc-proxy-downloader
+ARG CC_PROXY_VERSION
 ARG TARGETARCH
 RUN mkdir -p /out && \
     apk add --no-cache curl && \
@@ -8,8 +8,8 @@ RUN mkdir -p /out && \
     chmod +x /out/cc-proxy
 
 # Stage 2: download multica
-FROM alpine:3.20 AS multica-downloader
-ARG MULTICA_VERSION="0.3.2"
+FROM docker.1ms.run/alpine:3.20 AS multica-downloader
+ARG MULTICA_VERSION
 ARG TARGETARCH
 ARG ARCH=${TARGETARCH}
 RUN mkdir -p /out && \
@@ -25,8 +25,8 @@ RUN mkdir -p /out && \
     rm /out/multica.tar.gz
 
 # Stage 3: download claude-code native binary
-FROM alpine:3.20 AS claude-downloader
-ARG CLAUDE_CODE_VERSION="2.1.145"
+FROM docker.1ms.run/alpine:3.20 AS claude-downloader
+ARG CLAUDE_CODE_VERSION
 ARG TARGETARCH
 RUN mkdir -p /out && \
     apk add --no-cache curl && \
@@ -38,9 +38,10 @@ RUN mkdir -p /out && \
     curl -fsSL -o /out/claude "https://downloads.claude.ai/claude-code-releases/${CLAUDE_CODE_VERSION}/${PLATFORM}/claude" && \
     chmod +x /out/claude
 
-# Stage 4: final image
-FROM debian:bookworm-slim
-RUN apt-get update && \
+# Stage 4: final image (Chinese mirror)
+FROM docker.1ms.run/debian:bookworm-slim
+RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources && \
+    apt-get update && \
     apt-get install -y --no-install-recommends git ca-certificates curl sudo && \
     rm -rf /var/lib/apt/lists/* && \
     useradd -m -s /bin/bash agent && \
