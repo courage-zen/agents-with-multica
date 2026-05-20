@@ -10,6 +10,8 @@ on:
       - 'entrypoint.sh'
       - 'versions.yaml'
       - '.github/workflows/build.yml'
+    tags:
+      - 'v*'
   pull_request:
     paths:
       - 'Dockerfile'
@@ -20,6 +22,7 @@ on:
 
 jobs:
   build:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/') || github.event_name == 'pull_request'
     permissions:
       contents: read
       packages: write
@@ -84,7 +87,6 @@ jobs:
             CLAUDE_CODE_VERSION=${{ steps.versions.outputs.CLAUDE_CODE_VERSION }}
 
   release:
-    needs: build
     if: startsWith(github.ref, 'refs/tags/v')
     permissions:
       contents: write
