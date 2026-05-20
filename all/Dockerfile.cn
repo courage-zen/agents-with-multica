@@ -1,5 +1,5 @@
 # Stage 1: download cc-proxy
-FROM alpine:3.20 AS cc-proxy-downloader
+FROM docker.1ms.run/alpine:3.20 AS cc-proxy-downloader
 ARG CC_PROXY_VERSION="0.1.0"
 ARG TARGETARCH
 RUN mkdir -p /out && \
@@ -8,7 +8,7 @@ RUN mkdir -p /out && \
     chmod +x /out/cc-proxy
 
 # Stage 2: download multica
-FROM alpine:3.20 AS multica-downloader
+FROM docker.1ms.run/alpine:3.20 AS multica-downloader
 ARG MULTICA_VERSION="0.3.2"
 ARG TARGETARCH
 ARG ARCH=${TARGETARCH}
@@ -25,18 +25,17 @@ RUN mkdir -p /out && \
     rm /out/multica.tar.gz
 
 # Stage 4: final image (Chinese mirror)
-FROM ghcr.nju.edu.cn/library/node:20-bookworm-slim
+FROM docker.1ms.run/node:20-bookworm-slim
 ARG CLAUDE_CODE_VERSION="2.1.100"
-ARG OPENCODE_VERSION="1.15.5"
 RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources && \
     apt-get update && \
-    apt-get install -y --no-install-recommends git ca-certificates && \
+    apt-get install -y --no-install-recommends git ca-certificates curl sudo && \
     rm -rf /var/lib/apt/lists/* && \
     useradd -m -s /bin/bash agent && \
     echo "agent ALL=(ALL) NOPASSWD: /usr/local/bin/cc-proxy start -c /home/agent/.cc-proxy" >> /etc/sudoers.d/agent && \
     chmod 0440 /etc/sudoers.d/agent
 RUN npm config set registry https://registry.npmmirror.com && \
-    npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION:-2.1.100} opencode-ai@${OPENCODE_VERSION:-1.15.5}
+    npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION:-2.1.100}
 COPY --from=cc-proxy-downloader /out/cc-proxy /usr/local/bin/cc-proxy
 COPY --from=multica-downloader /out/multica /usr/local/bin/multica
 COPY entrypoint.sh /entrypoint.sh
