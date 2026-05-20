@@ -10,6 +10,7 @@ CONTAINER_NAME="${CONTAINER_NAME:-my-agent}"
 MULTICA_CONFIG="${MULTICA_CONFIG:-./config/multica-config.json}"
 CC_PROXY_CONFIG="${CC_PROXY_CONFIG:-./config/cc-proxy-config.yaml}"
 WIKI_DIR="${WIKI_DIR:-}"
+SKILLS_DIR="${SKILLS_DIR:-}"
 
 if [ ! -f "${MULTICA_CONFIG}" ]; then
   echo "ERROR: multica config not found: ${MULTICA_CONFIG}" >&2
@@ -33,6 +34,7 @@ docker run \
   -v "${MULTICA_CONFIG}:/etc/multica/config.json:ro" \
   -v "${CC_PROXY_CONFIG}:/home/agent/.cc-proxy/config.yaml:ro" \
   ${WIKI_DIR:+-v "${WIKI_DIR}:/home/agent/wiki:ro"} \
+  ${SKILLS_DIR:+-v "${SKILLS_DIR}:/home/agent/.claude/skills:ro"} \
   "${IMAGE}"
 
 echo "容器已启动: ${CONTAINER_NAME}"
