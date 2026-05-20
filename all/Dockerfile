@@ -27,14 +27,13 @@ RUN mkdir -p /out && \
 # Stage 4: final image
 FROM node:24-bookworm-slim
 ARG CLAUDE_CODE_VERSION="2.1.100"
-ARG OPENCODE_VERSION="1.15.5"
 RUN apt-get update && \
     apt-get install -y --no-install-recommends git ca-certificates curl sudo && \
     rm -rf /var/lib/apt/lists/* && \
     useradd -m -s /bin/bash agent && \
     echo "agent ALL=(ALL) NOPASSWD: /usr/local/bin/cc-proxy start -c /home/agent/.cc-proxy" >> /etc/sudoers.d/agent && \
     chmod 0440 /etc/sudoers.d/agent && \
-    npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION} opencode-ai@${OPENCODE_VERSION}
+    npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
 COPY --from=cc-proxy-downloader /out/cc-proxy /usr/local/bin/cc-proxy
 COPY --from=multica-downloader /out/multica /usr/local/bin/multica
 COPY entrypoint.sh /entrypoint.sh
