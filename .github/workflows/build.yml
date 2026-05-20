@@ -96,7 +96,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Extract project version
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Login to GHCR
         id: version
         run: |
           PROJECT_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('versions.yaml'))['project']['version'])")
@@ -113,12 +116,12 @@ jobs:
 
       - name: Pull amd64 image and save
         run: |
-          docker pull ghcr.io/courage-zen/agents-with-multica:${{ steps.version.outputs.TAG_VERSION }}-amd64
+          docker pull --platform linux/amd64 ghcr.io/courage-zen/agents-with-multica:${{ steps.version.outputs.TAG_VERSION }}-amd64
           docker save ghcr.io/courage-zen/agents-with-multica:${{ steps.version.outputs.TAG_VERSION }}-amd64 | gzip > agents-with-multica-amd64.tar.gz
 
       - name: Pull arm64 image and save
         run: |
-          docker pull ghcr.io/courage-zen/agents-with-multica:${{ steps.version.outputs.TAG_VERSION }}-arm64
+          docker pull --platform linux/arm64 ghcr.io/courage-zen/agents-with-multica:${{ steps.version.outputs.TAG_VERSION }}-arm64
           docker save ghcr.io/courage-zen/agents-with-multica:${{ steps.version.outputs.TAG_VERSION }}-arm64 | gzip > agents-with-multica-arm64.tar.gz
 
       - name: Create GitHub Release
