@@ -49,7 +49,6 @@ RUN apt-get update && \
 COPY --from=cc-proxy-downloader /out/cc-proxy /usr/local/bin/cc-proxy
 COPY --from=multica-downloader /out/multica /usr/local/bin/multica
 COPY --from=claude-downloader /out/claude /usr/local/bin/claude
-RUN /usr/local/bin/claude install --prefix /usr/local
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh && \
     chown -R agent:agent /home/agent
