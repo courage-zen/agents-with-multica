@@ -1,6 +1,6 @@
 # Stage 1: download cc-proxy
-FROM docker.1ms.run/alpine:3.20 AS cc-proxy-downloader
-ARG CC_PROXY_VERSION="0.1.0"
+FROM alpine:3.20 AS cc-proxy-downloader
+ARG CC_PROXY_VERSION
 ARG TARGETARCH
 RUN mkdir -p /out && \
     apk add --no-cache curl && \
@@ -8,8 +8,8 @@ RUN mkdir -p /out && \
     chmod +x /out/cc-proxy
 
 # Stage 2: download multica
-FROM docker.1ms.run/alpine:3.20 AS multica-downloader
-ARG MULTICA_VERSION="0.3.2"
+FROM alpine:3.20 AS multica-downloader
+ARG MULTICA_VERSION
 ARG TARGETARCH
 ARG ARCH=${TARGETARCH}
 RUN mkdir -p /out && \
@@ -24,21 +24,34 @@ RUN mkdir -p /out && \
     chmod +x /out/multica && \
     rm /out/multica.tar.gz
 
-# Stage 4: final image (Chinese mirror)
-FROM docker.1ms.run/node:20-bookworm-slim
-ARG CLAUDE_CODE_VERSION="2.1.100"
-RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources && \
-    apt-get update && \
+# Stage 3: download claude-code native binary
+FROM alpine:3.20 AS claude-downloader
+ARG CLAUDE_CODE_VERSION
+ARG TARGETARCH
+RUN mkdir -p /out && \
+    apk add --no-cache curl && \
+    case "${TARGETARCH}" in \
+    amd64) PLATFORM="linux-x64" ;; \
+    arm64) PLATFORM="linux-arm64" ;; \
+    *)     PLATFORM="linux-x64" ;; \
+    esac && \
+    curl -fsSL -o /out/claude "https://downloads.claude.ai/claude-code-releases/${CLAUDE_CODE_VERSION}/${PLATFORM}/claude" && \
+    chmod +x /out/claude
+
+# Stage 4: final image
+FROM debian:bookworm-slim
+RUN apt-get update && \
     apt-get install -y --no-install-recommends git ca-certificates curl sudo && \
     rm -rf /var/lib/apt/lists/* && \
     useradd -m -s /bin/bash agent && \
     echo "agent ALL=(ALL) NOPASSWD: /usr/local/bin/cc-proxy start -c /home/agent/.cc-proxy" >> /etc/sudoers.d/agent && \
     chmod 0440 /etc/sudoers.d/agent
-RUN npm config set registry https://registry.npmmirror.com && \
-    npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION:-2.1.100}
 COPY --from=cc-proxy-downloader /out/cc-proxy /usr/local/bin/cc-proxy
 COPY --from=multica-downloader /out/multica /usr/local/bin/multica
+COPY --from=claude-downloader /out/claude /usr/local/bin/claude
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh && \
+    mkdir -p /home/agent/wiki /home/agent/.claude/skills && \
     chown -R agent:agent /home/agent
+WORKDIR /home/agent
 ENTRYPOINT ["/entrypoint.sh"]

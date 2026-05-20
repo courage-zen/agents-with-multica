@@ -1,0 +1,42 @@
+proxy:
+  listen: "127.0.0.1"
+  port: 15721
+  mode: "normal"
+
+failover:
+  enabled: true
+  auto_switch: true
+
+logging:
+  level: "debug"
+
+providers:
+  - name: "provider-1"
+    type: openai_chat
+    api_key: "YOUR_API_KEY"
+    base_url: "http://YOUR_LLM_HOST:PORT"
+    models:
+      - MODEL_NAME
+    priority: 1
+    enabled: true
+    model_map:
+      default: "MODEL_NAME"
+      sonnet: "MODEL_NAME"
+      opus: "MODEL_NAME"
+      haiku: "MODEL_NAME"
+    api_format: "openai_chat"
+
+  - name: "provider-2"
+    type: openai_chat
+    api_key: "YOUR_API_KEY"
+    base_url: "http://YOUR_LLM_HOST:PORT/v1"
+    models:
+      - MODEL_NAME
+    priority: 2
+    enabled: true
+    model_map:
+      default: "MODEL_NAME"
+      sonnet: "MODEL_NAME"
+      opus: "MODEL_NAME"
+      haiku: "MODEL_NAME"
+    api_format: "openai_chat"
