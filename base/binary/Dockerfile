@@ -49,7 +49,7 @@ RUN apt-get update && \
 COPY --from=cc-proxy-downloader /out/cc-proxy /usr/local/bin/cc-proxy
 COPY --from=multica-downloader /out/multica /usr/local/bin/multica
 COPY --from=claude-downloader /out/claude /usr/local/bin/claude
-COPY entrypoint.sh /entrypoint.sh
+COPY base/binary/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh && \
     mkdir -p /home/agent/wiki /home/agent/.claude/skills && \
     git config --system credential.helper store && \
