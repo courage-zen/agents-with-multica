@@ -8,5 +8,3 @@ multica:
   repo: "multica-ai/multica"
 claude_code:
   version: "2.1.100"
-code_writer_ts:
-  node_version: "22"
