@@ -32,35 +32,7 @@ RUN npm install -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}"
 # Stage 4: npm offline cache — pre-download common TS development dependencies
 FROM node:22-bookworm-slim AS npm-cache
 WORKDIR /tmp/cache
-RUN cat > package.json <<'EOF' && npm install --prefer-offline
-{
-  "name": "modcache",
-  "private": true,
-  "dependencies": {
-    "tsx": "^4.19.0",
-    "typescript": "^5.8.0",
-    "@types/node": "^22.0.0",
-
-    "commander": "^14.0.0",
-    "inquirer": "^12.0.0",
-    "ora": "^8.0.0",
-    "chalk": "^5.0.0",
-    "cli-table3": "^0.6.0",
-
-    "pg": "^8.16.0",
-    "drizzle-orm": "^0.44.0",
-    "@drizzle-orm/pg-core": "^0.44.0",
-
-    "ioredis": "^5.6.0",
-
-    "zod": "^3.24.0",
-
-    "yaml": "^2.7.0",
-
-    "vitest": "^3.2.0"
-  }
-}
-EOF
+RUN printf '{"name":"modcache","private":true,"dependencies":{"tsx":"^4.19.0","typescript":"^5.8.0","@types/node":"^22.0.0","commander":"^14.0.0","inquirer":"^12.0.0","ora":"^8.0.0","chalk":"^5.0.0","cli-table3":"^0.6.0","pg":"^8.16.0","drizzle-orm":"^0.44.0","@drizzle-orm/pg-core":"^0.44.0","ioredis":"^5.6.0","zod":"^3.24.0","yaml":"^2.7.0","vitest":"^3.2.0"}}\n' > package.json && npm install --prefer-offline
 
 # Stage 5: final image
 FROM node:22-bookworm-slim
