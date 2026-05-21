@@ -5,23 +5,19 @@ on:
     branches:
       - main
     paths:
-      - 'Dockerfile'
-      - 'Dockerfile.cn'
-      - 'entrypoint.sh'
+      - 'base/**'
       - 'versions.yaml'
       - '.github/workflows/build.yml'
     tags:
       - 'v*'
   pull_request:
     paths:
-      - 'Dockerfile'
-      - 'Dockerfile.cn'
-      - 'entrypoint.sh'
+      - 'base/**'
       - 'versions.yaml'
       - '.github/workflows/build.yml'
 
 jobs:
-  build:
+  build-binary:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/') || github.event_name == 'pull_request'
     permissions:
       contents: read
@@ -60,7 +56,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./Dockerfile
+          file: ./base/binary/Dockerfile
           platforms: linux/amd64
           push: ${{ github.event_name == 'push' }}
           tags: |
@@ -75,7 +71,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./Dockerfile
+          file: ./base/binary/Dockerfile
           platforms: linux/arm64
           push: ${{ github.event_name == 'push' }}
           tags: |
@@ -86,11 +82,11 @@ jobs:
             MULTICA_VERSION=${{ steps.versions.outputs.MULTICA_VERSION }}
             CLAUDE_CODE_VERSION=${{ steps.versions.outputs.CLAUDE_CODE_VERSION }}
 
-  release:
-    if: startsWith(github.ref, 'refs/tags/v')
+  build-npm:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/') || github.event_name == 'pull_request'
     permissions:
-      contents: write
-      packages: read
+      contents: read
+      packages: write
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -99,11 +95,72 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Login to GHCR
-        id: version
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract versions
+        id: versions
         run: |
           PROJECT_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('versions.yaml'))['project']['version'])")
+          CC_PROXY_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('versions.yaml'))['cc_proxy']['version'])")
+          MULTICA_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('versions.yaml'))['multica']['version'])")
+          CLAUDE_CODE_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('versions.yaml'))['claude_code']['version'])")
           echo "PROJECT_VERSION=$PROJECT_VERSION" >> $GITHUB_OUTPUT
+          echo "CC_PROXY_VERSION=$CC_PROXY_VERSION" >> $GITHUB_OUTPUT
+          echo "MULTICA_VERSION=$MULTICA_VERSION" >> $GITHUB_OUTPUT
+          echo "CLAUDE_CODE_VERSION=$CLAUDE_CODE_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Build amd64
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./base/npm/Dockerfile
+          platforms: linux/amd64
+          push: ${{ github.event_name == 'push' }}
+          tags: |
+            ghcr.io/courage-zen/agents-with-multica-npm:latest-amd64
+            ghcr.io/courage-zen/agents-with-multica-npm:${{ steps.versions.outputs.PROJECT_VERSION }}-amd64
+          build-args: |
+            CC_PROXY_VERSION=${{ steps.versions.outputs.CC_PROXY_VERSION }}
+            MULTICA_VERSION=${{ steps.versions.outputs.MULTICA_VERSION }}
+            CLAUDE_CODE_VERSION=${{ steps.versions.outputs.CLAUDE_CODE_VERSION }}
+
+      - name: Build arm64
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./base/npm/Dockerfile
+          platforms: linux/arm64
+          push: ${{ github.event_name == 'push' }}
+          tags: |
+            ghcr.io/courage-zen/agents-with-multica-npm:latest-arm64
+            ghcr.io/courage-zen/agents-with-multica-npm:${{ steps.versions.outputs.PROJECT_VERSION }}-arm64
+          build-args: |
+            CC_PROXY_VERSION=${{ steps.versions.outputs.CC_PROXY_VERSION }}
+            MULTICA_VERSION=${{ steps.versions.outputs.MULTICA_VERSION }}
+            CLAUDE_CODE_VERSION=${{ steps.versions.outputs.CLAUDE_CODE_VERSION }}
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build-binary, build-npm]
+    permissions:
+      contents: write
+      packages: read
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract version
+        id: version
+        run: |
           TAG_VERSION=${GITHUB_REF#refs/tags/v}
           echo "TAG_VERSION=$TAG_VERSION" >> $GITHUB_OUTPUT
 
@@ -114,15 +171,21 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Pull amd64 image and save
+      - name: Pull and save binary images
         run: |
           docker pull --platform linux/amd64 ghcr.io/courage-zen/agents-with-multica:${{ steps.version.outputs.TAG_VERSION }}-amd64
           docker save ghcr.io/courage-zen/agents-with-multica:${{ steps.version.outputs.TAG_VERSION }}-amd64 | gzip > agents-with-multica-amd64.tar.gz
 
-      - name: Pull arm64 image and save
-        run: |
           docker pull --platform linux/arm64 ghcr.io/courage-zen/agents-with-multica:${{ steps.version.outputs.TAG_VERSION }}-arm64
           docker save ghcr.io/courage-zen/agents-with-multica:${{ steps.version.outputs.TAG_VERSION }}-arm64 | gzip > agents-with-multica-arm64.tar.gz
+
+      - name: Pull and save npm images
+        run: |
+          docker pull --platform linux/amd64 ghcr.io/courage-zen/agents-with-multica-npm:${{ steps.version.outputs.TAG_VERSION }}-amd64
+          docker save ghcr.io/courage-zen/agents-with-multica-npm:${{ steps.version.outputs.TAG_VERSION }}-amd64 | gzip > agents-with-multica-npm-amd64.tar.gz
+
+          docker pull --platform linux/arm64 ghcr.io/courage-zen/agents-with-multica-npm:${{ steps.version.outputs.TAG_VERSION }}-arm64
+          docker save ghcr.io/courage-zen/agents-with-multica-npm:${{ steps.version.outputs.TAG_VERSION }}-arm64 | gzip > agents-with-multica-npm-arm64.tar.gz
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -132,3 +195,5 @@ jobs:
           files: |
             agents-with-multica-amd64.tar.gz
             agents-with-multica-arm64.tar.gz
+            agents-with-multica-npm-amd64.tar.gz
+            agents-with-multica-npm-arm64.tar.gz

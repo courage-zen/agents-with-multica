@@ -5,6 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 ARCH="${1:-amd64}"
 CN="${2:-false}"
+VARIANT="${3:-binary}"
 
 # Docker daemon pre-check
 docker info > /dev/null 2>&1 || { echo "Error: Docker is not available or daemon is not running" >&2; exit 1; }
@@ -15,13 +16,25 @@ if [ "$ARCH" != "amd64" ] && [ "$ARCH" != "arm64" ]; then
     exit 1
 fi
 
+# Validate VARIANT
+if [ "$VARIANT" != "binary" ] && [ "$VARIANT" != "npm" ]; then
+    echo "Error: VARIANT must be 'binary' or 'npm'" >&2
+    exit 1
+fi
+
+# CN only applies to binary variant
+if [ "$CN" == "true" ] && [ "$VARIANT" != "binary" ]; then
+    echo "Error: CN flag only applies to binary variant" >&2
+    exit 1
+fi
+
 # Validate versions.yaml exists
 if [ ! -f "${SCRIPT_DIR}/versions.yaml" ]; then
     echo "Error: versions.yaml not found: ${SCRIPT_DIR}/versions.yaml" >&2
     exit 1
 fi
 
-# Read versions from YAML
+# Read versions from YAML (shared across variants)
 PROJECT_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('${SCRIPT_DIR}/versions.yaml'))['project']['version'])" 2>&1) || {
     echo "Error: failed to read project version" >&2; exit 1
 }
@@ -35,27 +48,28 @@ CLAUDE_CODE_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('${SCRI
     echo "Error: failed to read claude_code version" >&2; exit 1
 }
 
-# Select Dockerfile
-if [ "$CN" == "true" ]; then
-    DOCKERFILE="${SCRIPT_DIR}/Dockerfile.cn"
+# Select Dockerfile and tag by variant
+BASE_DIR="${SCRIPT_DIR}/base/${VARIANT}"
+
+if [ "$VARIANT" == "binary" ]; then
+    if [ "$CN" == "true" ]; then
+        DOCKERFILE="${BASE_DIR}/Dockerfile.cn"
+        TAG="agents-with-multica:${PROJECT_VERSION}-${ARCH}-cn"
+    else
+        DOCKERFILE="${BASE_DIR}/Dockerfile"
+        TAG="agents-with-multica:${PROJECT_VERSION}-${ARCH}"
+    fi
 else
-    DOCKERFILE="${SCRIPT_DIR}/Dockerfile"
+    DOCKERFILE="${BASE_DIR}/Dockerfile"
+    TAG="agents-with-multica-npm:${PROJECT_VERSION}-${ARCH}"
 fi
 
-# Build tag
-if [ "$CN" == "true" ]; then
-    TAG="agents-with-multica:${PROJECT_VERSION}-${ARCH}-cn"
-else
-    TAG="agents-with-multica:${PROJECT_VERSION}-${ARCH}"
-fi
-
-echo "Building: TAG=${TAG}"
+echo "Building: TAG=${TAG} (variant=${VARIANT})"
 echo "  PROJECT_VERSION=${PROJECT_VERSION}"
 echo "  CC_PROXY_VERSION=${CC_PROXY_VERSION}"
 echo "  MULTICA_VERSION=${MULTICA_VERSION}"
 echo "  CLAUDE_CODE_VERSION=${CLAUDE_CODE_VERSION}"
 
-# Build args
 BUILD_ARGS=(
     "--build-arg" "CC_PROXY_VERSION=${CC_PROXY_VERSION}"
     "--build-arg" "MULTICA_VERSION=${MULTICA_VERSION}"
