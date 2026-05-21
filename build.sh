@@ -17,8 +17,8 @@ if [ "$ARCH" != "amd64" ] && [ "$ARCH" != "arm64" ]; then
 fi
 
 # Validate VARIANT
-if [ "$VARIANT" != "binary" ] && [ "$VARIANT" != "npm" ]; then
-    echo "Error: VARIANT must be 'binary' or 'npm'" >&2
+if [ "$VARIANT" != "binary" ] && [ "$VARIANT" != "npm" ] && [ "$VARIANT" != "code-writer-ts" ]; then
+    echo "Error: VARIANT must be 'binary', 'npm', or 'code-writer-ts'" >&2
     exit 1
 fi
 
@@ -32,6 +32,16 @@ fi
 if [ ! -f "${SCRIPT_DIR}/versions.yaml" ]; then
     echo "Error: versions.yaml not found: ${SCRIPT_DIR}/versions.yaml" >&2
     exit 1
+fi
+
+# Read code-writer-ts version from separate file (only needed for code-writer-ts variant)
+if [ "$VARIANT" == "code-writer-ts" ]; then
+    if [ ! -f "${SCRIPT_DIR}/code-writer-version.yaml" ]; then
+        echo "Error: code-writer-version.yaml not found: ${SCRIPT_DIR}/code-writer-version.yaml" >&2; exit 1
+    fi
+    CODE_WRITER_TS_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('${SCRIPT_DIR}/code-writer-version.yaml'))['code_writer_ts']['version'])" 2>&1) || {
+        echo "Error: failed to read code_writer_ts version" >&2; exit 1
+    }
 fi
 
 # Read versions from YAML (shared across variants)
@@ -59,9 +69,12 @@ if [ "$VARIANT" == "binary" ]; then
         DOCKERFILE="${BASE_DIR}/Dockerfile"
         TAG="agents-with-multica:${PROJECT_VERSION}-${ARCH}"
     fi
-else
+elif [ "$VARIANT" == "npm" ]; then
     DOCKERFILE="${BASE_DIR}/Dockerfile"
     TAG="agents-with-multica-npm:${PROJECT_VERSION}-${ARCH}"
+else
+    DOCKERFILE="${BASE_DIR}/Dockerfile"
+    TAG="agents-with-multica-code-writer-ts:${CODE_WRITER_TS_VERSION}-${ARCH}"
 fi
 
 echo "Building: TAG=${TAG} (variant=${VARIANT})"
@@ -69,6 +82,9 @@ echo "  PROJECT_VERSION=${PROJECT_VERSION}"
 echo "  CC_PROXY_VERSION=${CC_PROXY_VERSION}"
 echo "  MULTICA_VERSION=${MULTICA_VERSION}"
 echo "  CLAUDE_CODE_VERSION=${CLAUDE_CODE_VERSION}"
+if [ "$VARIANT" == "code-writer-ts" ]; then
+    echo "  CODE_WRITER_TS_VERSION=${CODE_WRITER_TS_VERSION}"
+fi
 
 BUILD_ARGS=(
     "--build-arg" "CC_PROXY_VERSION=${CC_PROXY_VERSION}"
@@ -76,6 +92,9 @@ BUILD_ARGS=(
     "--build-arg" "CLAUDE_CODE_VERSION=${CLAUDE_CODE_VERSION}"
     "--build-arg" "TARGETARCH=${ARCH}"
 )
+if [ "$VARIANT" == "code-writer-ts" ]; then
+    BUILD_ARGS+=("--build-arg" "CODE_WRITER_TS_VERSION=${CODE_WRITER_TS_VERSION}")
+fi
 
 docker build --progress=plain -f "${DOCKERFILE}" "${BUILD_ARGS[@]}" -t "${TAG}" "${SCRIPT_DIR}" || {
     echo "Error: docker build failed for ${TAG}" >&2; exit 1
