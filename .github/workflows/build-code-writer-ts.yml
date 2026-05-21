@@ -5,12 +5,12 @@ on:
     branches:
       - main
     paths:
-      - 'base/code-writer-ts/**'
+      - 'code-writer/ts/**'
       - 'code-writer-version.yaml'
       - '.github/workflows/build-code-writer-ts.yml'
   pull_request:
     paths:
-      - 'base/code-writer-ts/**'
+      - 'code-writer/ts/**'
       - 'code-writer-version.yaml'
       - '.github/workflows/build-code-writer-ts.yml'
 
@@ -42,40 +42,32 @@ jobs:
         id: versions
         run: |
           CODE_WRITER_TS_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('code-writer-version.yaml'))['code_writer_ts']['version'])")
-          CC_PROXY_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('versions.yaml'))['cc_proxy']['version'])")
-          MULTICA_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('versions.yaml'))['multica']['version'])")
-          CLAUDE_CODE_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('versions.yaml'))['claude_code']['version'])")
+          PROJECT_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('versions.yaml'))['project']['version'])")
           echo "CODE_WRITER_TS_VERSION=$CODE_WRITER_TS_VERSION" >> $GITHUB_OUTPUT
-          echo "CC_PROXY_VERSION=$CC_PROXY_VERSION" >> $GITHUB_OUTPUT
-          echo "MULTICA_VERSION=$MULTICA_VERSION" >> $GITHUB_OUTPUT
-          echo "CLAUDE_CODE_VERSION=$CLAUDE_CODE_VERSION" >> $GITHUB_OUTPUT
+          echo "PROJECT_VERSION=$PROJECT_VERSION" >> $GITHUB_OUTPUT
 
       - name: Build amd64
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./base/code-writer-ts/Dockerfile
+          file: ./code-writer/ts/Dockerfile
           platforms: linux/amd64
           push: ${{ github.event_name == 'push' }}
           tags: |
             ghcr.io/courage-zen/agents-with-multica-code-writer-ts:latest-amd64
             ghcr.io/courage-zen/agents-with-multica-code-writer-ts:${{ steps.versions.outputs.CODE_WRITER_TS_VERSION }}-amd64
           build-args: |
-            CC_PROXY_VERSION=${{ steps.versions.outputs.CC_PROXY_VERSION }}
-            MULTICA_VERSION=${{ steps.versions.outputs.MULTICA_VERSION }}
-            CLAUDE_CODE_VERSION=${{ steps.versions.outputs.CLAUDE_CODE_VERSION }}
+            BASE_IMAGE=ghcr.io/courage-zen/agents-with-multica-npm:${{ steps.versions.outputs.PROJECT_VERSION }}-amd64
 
       - name: Build arm64
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./base/code-writer-ts/Dockerfile
+          file: ./code-writer/ts/Dockerfile
           platforms: linux/arm64
           push: ${{ github.event_name == 'push' }}
           tags: |
             ghcr.io/courage-zen/agents-with-multica-code-writer-ts:latest-arm64
             ghcr.io/courage-zen/agents-with-multica-code-writer-ts:${{ steps.versions.outputs.CODE_WRITER_TS_VERSION }}-arm64
           build-args: |
-            CC_PROXY_VERSION=${{ steps.versions.outputs.CC_PROXY_VERSION }}
-            MULTICA_VERSION=${{ steps.versions.outputs.MULTICA_VERSION }}
-            CLAUDE_CODE_VERSION=${{ steps.versions.outputs.CLAUDE_CODE_VERSION }}
+            BASE_IMAGE=ghcr.io/courage-zen/agents-with-multica-npm:${{ steps.versions.outputs.PROJECT_VERSION }}-arm64

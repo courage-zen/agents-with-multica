@@ -7,20 +7,30 @@ Docker 容器化的 Claude Code + multica agent 部署方案。
 - `base/` — 基础镜像
   - `binary/` — 二进制版（Claude Code native binary + cc-proxy + multica）
   - `npm/` — npm 版（Claude Code via npm on Node.js 22 + cc-proxy + multica）
-  - `code-writer-ts/` — TS 开发版（基于 npm 版 + tsx/typescript + npm 离线缓存 + 额外系统工具）
-- `versions.yaml` — 项目及组件版本号（单点定义）
+- `code-writer/ts/` — TS 开发版（FROM npm base 镜像 + tsx/typescript + npm 离线缓存 + 额外系统工具）
+- `versions.yaml` — base 镜像版本号
+- `code-writer-version.yaml` — code-writer-ts 独立版本号
 - `build.sh` — 本地构建脚本
 - `config/` — 配置模板（example 文件，不含敏感数据）
 - `test/internet/` — 外网部署配置和脚本
 - `test/intranet/` — 内网部署配置和脚本
 
-## 三个基础镜像
+## 镜像架构
 
-| 变体 | 基础镜像 | Claude Code 安装方式 | 额外能力 | 镜像名 |
-|------|---------|---------------------|---------|--------|
-| binary | `debian:bookworm-slim` | 原生二进制下载 | — | `agents-with-multica` |
-| npm | `node:22-bookworm-slim` | `npm install -g` | — | `agents-with-multica-npm` |
-| code-writer-ts | `node:22-bookworm-slim` | `npm install -g` | tsx/typescript 全局安装 + npm 离线缓存 + make/jq/psql/redis-cli | `agents-with-multica-code-writer-ts` |
+code-writer-ts **FROM** npm base 镜像，不重复构建 base 内容：
+
+```
+debian:bookworm-slim → agents-with-multica (binary base)
+node:22-bookworm-slim → agents-with-multica-npm (npm base)
+                             ↑ FROM
+                       agents-with-multica-code-writer-ts (code-writer-ts)
+```
+
+| 变体 | 基础镜像 | 额外能力 | 镜像名 |
+|------|---------|---------|--------|
+| binary | `debian:bookworm-slim` | — | `agents-with-multica` |
+| npm | `node:22-bookworm-slim` | — | `agents-with-multica-npm` |
+| code-writer-ts | npm base 镜像 | tsx/typescript + npm 离线缓存 + make/jq/psql/redis-cli | `agents-with-multica-code-writer-ts` |
 
 三者的 cc-proxy、multica、agent 用户体系、git credential 完全对齐。
 
@@ -54,7 +64,7 @@ code_writer_ts:
 
 分开存放是为了 CI path trigger 分开：改 `versions.yaml` 只触发 binary/npm 构建，改 `code-writer-version.yaml` 只触发 code-writer-ts 构建。
 
-Dockerfile 中的 ARG 无默认值，版本必须通过 `--build-arg` 从对应 yaml 文件传入，禁止硬编码。
+Dockerfile 中的 ARG 无默认值，版本必须通过 `--build-arg` 从对应 yaml 文件传入，禁止硬编码。code-writer-ts Dockerfile 的 `BASE_IMAGE` ARG 指向 npm base 镜像。
 
 ## 构建命令
 
@@ -68,16 +78,16 @@ Dockerfile 中的 ARG 无默认值，版本必须通过 `--build-arg` 从对应 
 # npm 版
 ./build.sh amd64 false npm
 
-# TS 开发版
+# TS 开发版（需要先构建或拉取 npm base 镜像）
 ./build.sh amd64 false code-writer-ts
 ```
 
 ## 发布流程
 
-1. 更改 `versions.yaml` 中的版本号（`project.version`、`code_writer_ts.version` 及需要的组件版本）
-2. commit + push to main → CI 自动构建三个变体的镜像：
-   - binary/npm：tag 为 `{project.version}-amd64` / `{project.version}-arm64`
-   - code-writer-ts：tag 为 `{code_writer_ts.version}-amd64` / `{code_writer_ts.version}-arm64`
+1. 更改版本号（`versions.yaml` 中的 `project.version` / `code-writer-version.yaml` 中的 `code_writer_ts.version` 及需要的组件版本）
+2. commit + push to main → CI 自动构建对应变体的镜像：
+   - `versions.yaml` 变更 → 构建 binary/npm
+   - `code-writer-version.yaml` 变更 → 构建 code-writer-ts（FROM npm base）
 3. 打 git tag 触发 Release 发布：
    ```
    git tag v{project.version}

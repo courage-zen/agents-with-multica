@@ -34,6 +34,11 @@ if [ ! -f "${SCRIPT_DIR}/versions.yaml" ]; then
     exit 1
 fi
 
+# Read versions from YAML (shared across base variants)
+PROJECT_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('${SCRIPT_DIR}/versions.yaml'))['project']['version'])" 2>&1) || {
+    echo "Error: failed to read project version" >&2; exit 1
+}
+
 # Read code-writer-ts version from separate file (only needed for code-writer-ts variant)
 if [ "$VARIANT" == "code-writer-ts" ]; then
     if [ ! -f "${SCRIPT_DIR}/code-writer-version.yaml" ]; then
@@ -44,24 +49,9 @@ if [ "$VARIANT" == "code-writer-ts" ]; then
     }
 fi
 
-# Read versions from YAML (shared across variants)
-PROJECT_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('${SCRIPT_DIR}/versions.yaml'))['project']['version'])" 2>&1) || {
-    echo "Error: failed to read project version" >&2; exit 1
-}
-CC_PROXY_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('${SCRIPT_DIR}/versions.yaml'))['cc_proxy']['version'])" 2>&1) || {
-    echo "Error: failed to read cc_proxy version" >&2; exit 1
-}
-MULTICA_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('${SCRIPT_DIR}/versions.yaml'))['multica']['version'])" 2>&1) || {
-    echo "Error: failed to read multica version" >&2; exit 1
-}
-CLAUDE_CODE_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('${SCRIPT_DIR}/versions.yaml'))['claude_code']['version'])" 2>&1) || {
-    echo "Error: failed to read claude_code version" >&2; exit 1
-}
-
 # Select Dockerfile and tag by variant
-BASE_DIR="${SCRIPT_DIR}/base/${VARIANT}"
-
 if [ "$VARIANT" == "binary" ]; then
+    BASE_DIR="${SCRIPT_DIR}/base/binary"
     if [ "$CN" == "true" ]; then
         DOCKERFILE="${BASE_DIR}/Dockerfile.cn"
         TAG="agents-with-multica:${PROJECT_VERSION}-${ARCH}-cn"
@@ -70,30 +60,43 @@ if [ "$VARIANT" == "binary" ]; then
         TAG="agents-with-multica:${PROJECT_VERSION}-${ARCH}"
     fi
 elif [ "$VARIANT" == "npm" ]; then
-    DOCKERFILE="${BASE_DIR}/Dockerfile"
+    DOCKERFILE="${SCRIPT_DIR}/base/npm/Dockerfile"
     TAG="agents-with-multica-npm:${PROJECT_VERSION}-${ARCH}"
 else
-    DOCKERFILE="${BASE_DIR}/Dockerfile"
+    DOCKERFILE="${SCRIPT_DIR}/code-writer/ts/Dockerfile"
     TAG="agents-with-multica-code-writer-ts:${CODE_WRITER_TS_VERSION}-${ARCH}"
 fi
 
 echo "Building: TAG=${TAG} (variant=${VARIANT})"
-echo "  PROJECT_VERSION=${PROJECT_VERSION}"
-echo "  CC_PROXY_VERSION=${CC_PROXY_VERSION}"
-echo "  MULTICA_VERSION=${MULTICA_VERSION}"
-echo "  CLAUDE_CODE_VERSION=${CLAUDE_CODE_VERSION}"
-if [ "$VARIANT" == "code-writer-ts" ]; then
-    echo "  CODE_WRITER_TS_VERSION=${CODE_WRITER_TS_VERSION}"
-fi
 
-BUILD_ARGS=(
-    "--build-arg" "CC_PROXY_VERSION=${CC_PROXY_VERSION}"
-    "--build-arg" "MULTICA_VERSION=${MULTICA_VERSION}"
-    "--build-arg" "CLAUDE_CODE_VERSION=${CLAUDE_CODE_VERSION}"
-    "--build-arg" "TARGETARCH=${ARCH}"
-)
-if [ "$VARIANT" == "code-writer-ts" ]; then
-    BUILD_ARGS+=("--build-arg" "CODE_WRITER_TS_VERSION=${CODE_WRITER_TS_VERSION}")
+BUILD_ARGS=()
+if [ "$VARIANT" == "binary" ] || [ "$VARIANT" == "npm" ]; then
+    CC_PROXY_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('${SCRIPT_DIR}/versions.yaml'))['cc_proxy']['version'])" 2>&1) || {
+        echo "Error: failed to read cc_proxy version" >&2; exit 1
+    }
+    MULTICA_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('${SCRIPT_DIR}/versions.yaml'))['multica']['version'])" 2>&1) || {
+        echo "Error: failed to read multica version" >&2; exit 1
+    }
+    CLAUDE_CODE_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('${SCRIPT_DIR}/versions.yaml'))['claude_code']['version'])" 2>&1) || {
+        echo "Error: failed to read claude_code version" >&2; exit 1
+    }
+    BUILD_ARGS=(
+        "--build-arg" "CC_PROXY_VERSION=${CC_PROXY_VERSION}"
+        "--build-arg" "MULTICA_VERSION=${MULTICA_VERSION}"
+        "--build-arg" "CLAUDE_CODE_VERSION=${CLAUDE_CODE_VERSION}"
+        "--build-arg" "TARGETARCH=${ARCH}"
+    )
+    echo "  PROJECT_VERSION=${PROJECT_VERSION}"
+    echo "  CC_PROXY_VERSION=${CC_PROXY_VERSION}"
+    echo "  MULTICA_VERSION=${MULTICA_VERSION}"
+    echo "  CLAUDE_CODE_VERSION=${CLAUDE_CODE_VERSION}"
+else
+    BASE_IMAGE="agents-with-multica-npm:${PROJECT_VERSION}-${ARCH}"
+    BUILD_ARGS=(
+        "--build-arg" "BASE_IMAGE=${BASE_IMAGE}"
+    )
+    echo "  CODE_WRITER_TS_VERSION=${CODE_WRITER_TS_VERSION}"
+    echo "  BASE_IMAGE=${BASE_IMAGE}"
 fi
 
 docker build --progress=plain -f "${DOCKERFILE}" "${BUILD_ARGS[@]}" -t "${TAG}" "${SCRIPT_DIR}" || {
