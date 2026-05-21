@@ -53,9 +53,9 @@ COPY --from=claude-downloader /out/claude /usr/local/bin/claude
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh && \
     mkdir -p /home/agent/wiki /home/agent/.claude/skills && \
-    git config --global --system credential.helper store && \
-    git config --global --system user.name agent && \
-    git config --global --system user.email agent@container && \
+    git config --system credential.helper store && \
+    git config --system user.name agent && \
+    git config --system user.email agent@container && \
     chown -R agent:agent /home/agent
 WORKDIR /home/agent
 ENTRYPOINT ["/entrypoint.sh"]
