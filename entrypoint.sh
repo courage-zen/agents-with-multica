@@ -17,6 +17,14 @@ if [ ! -f ~/.cc-proxy/config.yaml ]; then
     echo "ERROR: ~/.cc-proxy/config.yaml not found (mount it as read-only volume)" >&2; exit 1
 fi
 
+# ---- git credential 配置 ----
+if [ -n "${GIT_TOKEN:-}" ] && [ -n "${GIT_REPO_URL:-}" ]; then
+    GIT_USERNAME="${GIT_USERNAME:-oauth2}"
+    GIT_HOST=$(echo "${GIT_REPO_URL}" | sed -E 's|https://([^/]+).*|\1|')
+    echo "https://${GIT_USERNAME}:${GIT_TOKEN}@${GIT_HOST}" > ~/.git-credentials
+    chmod 600 ~/.git-credentials
+fi
+
 RUNTIME_NAME="${MULTICA_AGENT_RUNTIME_NAME:-Docker}"
 DEVICE_NAME="${MULTICA_DAEMON_DEVICE_NAME:-Docker}"
 

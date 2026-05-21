@@ -41,7 +41,7 @@ RUN mkdir -p /out && \
 # Stage 4: final image
 FROM debian:bookworm-slim
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends git ca-certificates curl sudo && \
+    apt-get install -y --no-install-recommends git ca-certificates curl sudo openssh-client && \
     rm -rf /var/lib/apt/lists/* && \
     useradd -m -s /bin/bash agent && \
     echo "agent ALL=(ALL) NOPASSWD: /usr/local/bin/cc-proxy start -c /home/agent/.cc-proxy" >> /etc/sudoers.d/agent && \
@@ -52,6 +52,9 @@ COPY --from=claude-downloader /out/claude /usr/local/bin/claude
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh && \
     mkdir -p /home/agent/wiki /home/agent/.claude/skills && \
+    git config --global --system credential.helper store && \
+    git config --global --system user.name agent && \
+    git config --global --system user.email agent@container && \
     chown -R agent:agent /home/agent
 WORKDIR /home/agent
 ENTRYPOINT ["/entrypoint.sh"]
