@@ -27,7 +27,7 @@ RUN go mod init modcache && \
     go get github.com/jackc/pgx/v5@latest && \
     go get github.com/jackc/pgx/v5/pgtype@latest && \
     go get github.com/jackc/pgx/v5/stdlib@latest && \
-    go get github.com/sqlc-dev/sqlc/runtime@latest && \
+    go get github.com/sqlc-dev/sqlc/runtime@latest || true && \
     # --- Redis (集群模式) ---
     go get github.com/redis/go-redis/v9@latest && \
     # --- 配置 ---
