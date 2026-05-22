@@ -46,7 +46,9 @@ RUN go mod init modcache && \
     # --- HTTP client (CLI 调 API 时可能需要) ---
     go get golang.org/x/net@latest && \
     # --- 让 go mod tidy 实际下载所有依赖 ---
-    go mod tidy
+    go mod tidy && \
+    # 确保 cache 目录结构完整（Go 1.26+ 不一定生成 sumdb 目录）
+    mkdir -p /gocache/pkg/mod/cache /gocache/pkg/mod/sumdb
 
 # Stage 3: final image — layered on top of the npm base image
 FROM ${BASE_IMAGE}
