@@ -1,3 +1,9 @@
 code_writer_ts:
   version: "0.1.0"
   node_version: "22"
+code_writer_go:
+  version: "0.1.0"
+  go_version: "1.26"
+  sqlc_version: "1.27.0"
+  golangci_lint_version: "1.64.8"
+  goose_version: "3.24.1"

@@ -17,8 +17,8 @@ if [ "$ARCH" != "amd64" ] && [ "$ARCH" != "arm64" ]; then
 fi
 
 # Validate VARIANT
-if [ "$VARIANT" != "binary" ] && [ "$VARIANT" != "npm" ] && [ "$VARIANT" != "code-writer-ts" ]; then
-    echo "Error: VARIANT must be 'binary', 'npm', or 'code-writer-ts'" >&2
+if [ "$VARIANT" != "binary" ] && [ "$VARIANT" != "npm" ] && [ "$VARIANT" != "code-writer-ts" ] && [ "$VARIANT" != "code-writer-go" ]; then
+    echo "Error: VARIANT must be 'binary', 'npm', 'code-writer-ts', or 'code-writer-go'" >&2
     exit 1
 fi
 
@@ -49,6 +49,15 @@ if [ "$VARIANT" == "code-writer-ts" ]; then
     }
 fi
 
+if [ "$VARIANT" == "code-writer-go" ]; then
+    if [ ! -f "${SCRIPT_DIR}/code-writer-version.yaml" ]; then
+        echo "Error: code-writer-version.yaml not found: ${SCRIPT_DIR}/code-writer-version.yaml" >&2; exit 1
+    fi
+    CODE_WRITER_GO_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('${SCRIPT_DIR}/code-writer-version.yaml'))['code_writer_go']['version'])" 2>&1) || {
+        echo "Error: failed to read code_writer_go version" >&2; exit 1
+    }
+fi
+
 # Select Dockerfile and tag by variant
 if [ "$VARIANT" == "binary" ]; then
     BASE_DIR="${SCRIPT_DIR}/base/binary"
@@ -62,6 +71,9 @@ if [ "$VARIANT" == "binary" ]; then
 elif [ "$VARIANT" == "npm" ]; then
     DOCKERFILE="${SCRIPT_DIR}/base/npm/Dockerfile"
     TAG="agents-with-multica-npm:${PROJECT_VERSION}-${ARCH}"
+elif [ "$VARIANT" == "code-writer-go" ]; then
+    DOCKERFILE="${SCRIPT_DIR}/code-writer/go/Dockerfile"
+    TAG="agents-with-multica-code-writer-go:${CODE_WRITER_GO_VERSION}-${ARCH}"
 else
     DOCKERFILE="${SCRIPT_DIR}/code-writer/ts/Dockerfile"
     TAG="agents-with-multica-code-writer-ts:${CODE_WRITER_TS_VERSION}-${ARCH}"
@@ -90,6 +102,28 @@ if [ "$VARIANT" == "binary" ] || [ "$VARIANT" == "npm" ]; then
     echo "  CC_PROXY_VERSION=${CC_PROXY_VERSION}"
     echo "  MULTICA_VERSION=${MULTICA_VERSION}"
     echo "  CLAUDE_CODE_VERSION=${CLAUDE_CODE_VERSION}"
+elif [ "$VARIANT" == "code-writer-go" ]; then
+    SQLC_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('${SCRIPT_DIR}/code-writer-version.yaml'))['code_writer_go']['sqlc_version'])" 2>&1) || {
+        echo "Error: failed to read sqlc version" >&2; exit 1
+    }
+    GOLANGCI_LINT_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('${SCRIPT_DIR}/code-writer-version.yaml'))['code_writer_go']['golangci_lint_version'])" 2>&1) || {
+        echo "Error: failed to read golangci_lint version" >&2; exit 1
+    }
+    GOOSE_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('${SCRIPT_DIR}/code-writer-version.yaml'))['code_writer_go']['goose_version'])" 2>&1) || {
+        echo "Error: failed to read goose version" >&2; exit 1
+    }
+    BASE_IMAGE="agents-with-multica-npm:${PROJECT_VERSION}-${ARCH}"
+    BUILD_ARGS=(
+        "--build-arg" "BASE_IMAGE=${BASE_IMAGE}"
+        "--build-arg" "SQLC_VERSION=${SQLC_VERSION}"
+        "--build-arg" "GOLANGCI_LINT_VERSION=${GOLANGCI_LINT_VERSION}"
+        "--build-arg" "GOOSE_VERSION=${GOOSE_VERSION}"
+    )
+    echo "  CODE_WRITER_GO_VERSION=${CODE_WRITER_GO_VERSION}"
+    echo "  SQLC_VERSION=${SQLC_VERSION}"
+    echo "  GOLANGCI_LINT_VERSION=${GOLANGCI_LINT_VERSION}"
+    echo "  GOOSE_VERSION=${GOOSE_VERSION}"
+    echo "  BASE_IMAGE=${BASE_IMAGE}"
 else
     BASE_IMAGE="agents-with-multica-npm:${PROJECT_VERSION}-${ARCH}"
     BUILD_ARGS=(
