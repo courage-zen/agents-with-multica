@@ -19,7 +19,6 @@ ENV GOPROXY=https://goproxy.cn,direct
 
 WORKDIR /tmp/modcache
 RUN go mod init modcache && \
-    go mod tidy && \
     # --- CLI 框架 ---
     go get github.com/spf13/cobra@latest && \
     go get github.com/spf13/pflag@latest && \
@@ -27,7 +26,6 @@ RUN go mod init modcache && \
     go get github.com/jackc/pgx/v5@latest && \
     go get github.com/jackc/pgx/v5/pgtype@latest && \
     go get github.com/jackc/pgx/v5/stdlib@latest && \
-    go get github.com/sqlc-dev/sqlc/runtime@latest || true && \
     # --- Redis (集群模式) ---
     go get github.com/redis/go-redis/v9@latest && \
     # --- 配置 ---
@@ -36,7 +34,6 @@ RUN go mod init modcache && \
     go get go.uber.org/zap@latest && \
     # --- 输出格式化 ---
     go get github.com/charmbracelet/lipgloss@latest && \
-    go get github.com/olekukonez/tablewriter@latest && \
     # --- 测试 ---
     go get github.com/stretchr/testify@latest && \
     # --- 加密 / UUID ---
@@ -46,6 +43,8 @@ RUN go mod init modcache && \
     go get gopkg.in/yaml.v3@latest && \
     # --- Context / 并发 ---
     go get golang.org/x/sync@latest && \
+    # --- HTTP client (CLI 调 API 时可能需要) ---
+    go get golang.org/x/net@latest && \
     # --- 让 go mod tidy 实际下载所有依赖 ---
     go mod tidy
 
