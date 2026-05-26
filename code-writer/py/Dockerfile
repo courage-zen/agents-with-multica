@@ -10,14 +10,18 @@ RUN mkdir -p /opt/python3.12 && \
     cp -a /usr/local/lib/python3.12      /opt/python3.12/lib && \
     cp -a /usr/local/include/python3.12  /opt/python3.12/include && \
     mkdir -p /opt/python3.12/bin && \
-    cp /usr/local/bin/python3.12     /opt/python3.12/bin/ && \
-    cp /usr/local/bin/pip3.12        /opt/python3.12/bin/ && \
-    cp /usr/local/bin/uv             /opt/python3.12/bin/ && \
+    cp /usr/local/bin/python3.12         /opt/python3.12/bin/ && \
+    cp /usr/local/bin/pip3               /opt/python3.12/bin/  || true && \
+    cp /usr/local/bin/pip                /opt/python3.12/bin/  || true && \
+    cp /usr/local/bin/uv                 /opt/python3.12/bin/ && \
+    cp -a /usr/local/lib/libpython3.12*  /opt/python3.12/lib/  || true && \
     ln -sf python3.12 /opt/python3.12/bin/python3 && \
     ln -sf python3.12 /opt/python3.12/bin/python && \
-    ln -sf pip3.12    /opt/python3.12/bin/pip3 && \
-    ln -sf pip3.12    /opt/python3.12/bin/pip && \
-    ln -sf uv         /opt/python3.12/bin/uv
+    ln -sf pip3       /opt/python3.12/bin/pip3 && \
+    ln -sf pip3       /opt/python3.12/bin/pip && \
+    ln -sf uv         /opt/python3.12/bin/uv && \
+    # 修复所有脚本的 shebang，使其指向新路径
+    find /opt/python3.12/bin -type f -exec sed -i 's|#!/usr/local/bin/python3|#!/opt/python3.12/bin/python3|g' {} \;
 
 # Stage 2: uv offline cache — pre-download common Python development packages
 FROM python:3.12-slim AS pip-cache
@@ -51,10 +55,12 @@ COPY --from=pip-cache /root/.cache/uv/ /home/agent/.cache/uv/
 COPY --from=pip-cache /tmp/cache-venv/lib/python3.12/site-packages/ /opt/python3.12/lib/site-packages/
 
 ENV PATH="/opt/python3.12/bin:${PATH}"
+ENV LD_LIBRARY_PATH="/opt/python3.12/lib"
 ENV PYTHONPATH="/opt/python3.12/lib/site-packages"
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 # 运行时禁止 uv 网络访问 —— 只用预缓存的包
 # 如果需要新增依赖，在有网机器上重新构建镜像
+# 临时覆盖：docker run -e UV_OFFLINE=0 ...
 ENV UV_OFFLINE=1
-RUN chown -R agent:agent /home/agent/.cache/uv /opt/python3.12
+RUN chown -R agent:agent /home/agent/.cache/uv /opt/python3.12/lib/site-packages
