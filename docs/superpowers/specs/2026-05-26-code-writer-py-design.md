@@ -29,7 +29,8 @@ The image adds to the npm base:
 - FROM `python:3.12-slim`
 - ARG `UV_VERSION` (no default, must come from `--build-arg`)
 - Copy uv binary from `ghcr.io/astral-sh/uv:${UV_VERSION}` via Docker `COPY --from`
-- Output: Python interpreter at `/usr/local/`, uv binary at `/usr/local/bin/uv`
+- Relocate Python installation to `/opt/python3.12/` (avoiding collision with npm base's `/usr/local/` which contains Node.js)
+- Output: Python interpreter, pip, and uv at `/opt/python3.12/bin/`, Python stdlib at `/opt/python3.12/lib/`
 
 ### Stage 2: uv offline cache
 
@@ -46,22 +47,22 @@ The image adds to the npm base:
   - pytest + pytest-asyncio (testing)
   - httpx (HTTP client, also needed by FastAPI testing)
   - aiohttp (async HTTP)
-- The uv cache directory (`/root/.cache/uv`) contains all downloaded wheels/metadata
-- Output: uv cache at `/root/.cache/uv/`
+- Outputs: uv cache at `/root/.cache/uv/`, installed site-packages at `/tmp/cache-venv/lib/python3.12/site-packages/`
 
 ### Stage 3: Final image
 
 - FROM `${BASE_IMAGE}` (npm base, ARG with no default)
 - Install system tools: `apt-get install -y --no-install-recommends make jq postgresql-client redis-tools vim-tiny`
-- Copy Python from Stage 1: `/usr/local/bin/python3.12`, `/usr/local/lib/python3.12/`
-- Copy uv binary from Stage 1: `/usr/local/bin/uv`
+- Copy Python from Stage 1: `/opt/python3.12/` (bin, lib, include)
 - Copy uv cache from Stage 2: `/root/.cache/uv/` → `/home/agent/.cache/uv/`
+- Copy pre-installed site-packages from Stage 2: → `/opt/python3.12/lib/site-packages/`
 - Environment variables:
+  - `PATH="/opt/python3.12/bin:${PATH}"` — Python and uv accessible
+  - `PYTHONPATH="/opt/python3.12/lib/site-packages"` — pre-cached packages importable
   - `UV_OFFLINE=1` — runtime only uses cached packages (mirrors `GOPROXY=off`)
   - `PYTHONDONTWRITEBYTECODE=1`
   - `PYTHONUNBUFFERED=1`
-  - `PATH` includes uv and Python
-- `chown -R agent:agent` for `/home/agent/.cache/uv` and Python directories
+- `chown -R agent:agent` for `/home/agent/.cache/uv` and `/opt/python3.12`
 
 ## Version file update
 
