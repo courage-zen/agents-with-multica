@@ -4,7 +4,7 @@ ARG UV_VERSION
 # Stage 1: Python + uv toolchain
 FROM python:3.12-slim AS python-toolchain
 ARG UV_VERSION
-COPY --from=ghcr.io/astral-sh/uv:${UV_VERSION} /uv /usr/local/bin/uv
+RUN pip install --no-cache-dir uv==${UV_VERSION}
 # 将 Python 安装复制到独立前缀，避免覆盖 npm base 的 /usr/local/（含 Node.js）
 RUN mkdir -p /opt/python3.12 && \
     cp -a /usr/local/lib/python3.12      /opt/python3.12/lib && \
@@ -14,6 +14,7 @@ RUN mkdir -p /opt/python3.12 && \
     cp /usr/local/bin/pip3               /opt/python3.12/bin/  || true && \
     cp /usr/local/bin/pip                /opt/python3.12/bin/  || true && \
     cp /usr/local/bin/uv                 /opt/python3.12/bin/ && \
+    cp /usr/local/bin/uvx                /opt/python3.12/bin/ || true && \
     cp -a /usr/local/lib/libpython3.12*  /opt/python3.12/lib/  || true && \
     ln -sf python3.12 /opt/python3.12/bin/python3 && \
     ln -sf python3.12 /opt/python3.12/bin/python && \
@@ -26,7 +27,7 @@ RUN mkdir -p /opt/python3.12 && \
 # Stage 2: uv offline cache — pre-download common Python development packages
 FROM python:3.12-slim AS pip-cache
 ARG UV_VERSION
-COPY --from=ghcr.io/astral-sh/uv:${UV_VERSION} /uv /usr/local/bin/uv
+RUN pip install --no-cache-dir uv==${UV_VERSION}
 RUN uv venv /tmp/cache-venv && \
     uv pip install --python /tmp/cache-venv/bin/python \
         fastapi \
