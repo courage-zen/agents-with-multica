@@ -1,10 +1,10 @@
 project:
-  version: "0.2.2"
+  version: "0.2.3"
 cc_proxy:
   version: "0.1.0"
   repo: "courage-zen/cc-proxy"
 multica:
-  version: "0.3.4"
+  version: "0.3.8"
   repo: "multica-ai/multica"
 claude_code:
   version: "2.1.100"
