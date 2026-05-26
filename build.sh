@@ -17,8 +17,8 @@ if [ "$ARCH" != "amd64" ] && [ "$ARCH" != "arm64" ]; then
 fi
 
 # Validate VARIANT
-if [ "$VARIANT" != "binary" ] && [ "$VARIANT" != "npm" ] && [ "$VARIANT" != "code-writer-ts" ] && [ "$VARIANT" != "code-writer-go" ]; then
-    echo "Error: VARIANT must be 'binary', 'npm', 'code-writer-ts', or 'code-writer-go'" >&2
+if [ "$VARIANT" != "binary" ] && [ "$VARIANT" != "npm" ] && [ "$VARIANT" != "code-writer-ts" ] && [ "$VARIANT" != "code-writer-go" ] && [ "$VARIANT" != "code-writer-py" ]; then
+    echo "Error: VARIANT must be 'binary', 'npm', 'code-writer-ts', 'code-writer-go', or 'code-writer-py'" >&2
     exit 1
 fi
 
@@ -58,6 +58,15 @@ if [ "$VARIANT" == "code-writer-go" ]; then
     }
 fi
 
+if [ "$VARIANT" == "code-writer-py" ]; then
+    if [ ! -f "${SCRIPT_DIR}/code-writer-version.yaml" ]; then
+        echo "Error: code-writer-version.yaml not found: ${SCRIPT_DIR}/code-writer-version.yaml" >&2; exit 1
+    fi
+    CODE_WRITER_PY_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('${SCRIPT_DIR}/code-writer-version.yaml'))['code_writer_py']['version'])" 2>&1) || {
+        echo "Error: failed to read code_writer_py version" >&2; exit 1
+    }
+fi
+
 # Select Dockerfile and tag by variant
 if [ "$VARIANT" == "binary" ]; then
     BASE_DIR="${SCRIPT_DIR}/base/binary"
@@ -74,6 +83,9 @@ elif [ "$VARIANT" == "npm" ]; then
 elif [ "$VARIANT" == "code-writer-go" ]; then
     DOCKERFILE="${SCRIPT_DIR}/code-writer/go/Dockerfile"
     TAG="agents-with-multica-code-writer-go:${CODE_WRITER_GO_VERSION}-${ARCH}"
+elif [ "$VARIANT" == "code-writer-py" ]; then
+    DOCKERFILE="${SCRIPT_DIR}/code-writer/py/Dockerfile"
+    TAG="agents-with-multica-code-writer-py:${CODE_WRITER_PY_VERSION}-${ARCH}"
 else
     DOCKERFILE="${SCRIPT_DIR}/code-writer/ts/Dockerfile"
     TAG="agents-with-multica-code-writer-ts:${CODE_WRITER_TS_VERSION}-${ARCH}"
@@ -123,6 +135,18 @@ elif [ "$VARIANT" == "code-writer-go" ]; then
     echo "  SQLC_VERSION=${SQLC_VERSION}"
     echo "  GOLANGCI_LINT_VERSION=${GOLANGCI_LINT_VERSION}"
     echo "  GOOSE_VERSION=${GOOSE_VERSION}"
+    echo "  BASE_IMAGE=${BASE_IMAGE}"
+elif [ "$VARIANT" == "code-writer-py" ]; then
+    UV_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('${SCRIPT_DIR}/code-writer-version.yaml'))['code_writer_py']['uv_version'])" 2>&1) || {
+        echo "Error: failed to read uv version" >&2; exit 1
+    }
+    BASE_IMAGE="agents-with-multica-npm:${PROJECT_VERSION}-${ARCH}"
+    BUILD_ARGS=(
+        "--build-arg" "BASE_IMAGE=${BASE_IMAGE}"
+        "--build-arg" "UV_VERSION=${UV_VERSION}"
+    )
+    echo "  CODE_WRITER_PY_VERSION=${CODE_WRITER_PY_VERSION}"
+    echo "  UV_VERSION=${UV_VERSION}"
     echo "  BASE_IMAGE=${BASE_IMAGE}"
 else
     BASE_IMAGE="agents-with-multica-npm:${PROJECT_VERSION}-${ARCH}"
