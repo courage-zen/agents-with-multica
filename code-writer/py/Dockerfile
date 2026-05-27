@@ -39,7 +39,11 @@ RUN uv venv /tmp/cache-venv && \
         pytest \
         pytest-asyncio \
         httpx \
-        aiohttp
+        aiohttp \
+        'mcp[cli]' \
+        sqlglot \
+        pymysql \
+        python-dotenv
 
 # Stage 3: final image — layered on top of the npm base image
 FROM ${BASE_IMAGE}
