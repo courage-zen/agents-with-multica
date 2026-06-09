@@ -1,13 +1,13 @@
 code_writer_ts:
-  version: "0.1.0"
+  version: "0.1.1"
   node_version: "22"
 code_writer_go:
-  version: "0.1.0"
+  version: "0.1.1"
   go_version: "1.26"
   sqlc_version: "1.27.0"
   golangci_lint_version: "1.64.8"
   goose_version: "3.24.1"
 code_writer_py:
-  version: "0.1.1"
+  version: "0.1.2"
   python_version: "3.12"
   uv_version: "0.7.0"
