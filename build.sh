@@ -4,8 +4,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 ARCH="${1:-amd64}"
-CN="${2:-false}"
-VARIANT="${3:-binary}"
+VARIANT="${2:-npm}"
 
 # Docker daemon pre-check
 docker info > /dev/null 2>&1 || { echo "Error: Docker is not available or daemon is not running" >&2; exit 1; }
@@ -17,14 +16,8 @@ if [ "$ARCH" != "amd64" ] && [ "$ARCH" != "arm64" ]; then
 fi
 
 # Validate VARIANT
-if [ "$VARIANT" != "binary" ] && [ "$VARIANT" != "npm" ] && [ "$VARIANT" != "code-writer-ts" ] && [ "$VARIANT" != "code-writer-go" ] && [ "$VARIANT" != "code-writer-py" ]; then
-    echo "Error: VARIANT must be 'binary', 'npm', 'code-writer-ts', 'code-writer-go', or 'code-writer-py'" >&2
-    exit 1
-fi
-
-# CN only applies to binary variant
-if [ "$CN" == "true" ] && [ "$VARIANT" != "binary" ]; then
-    echo "Error: CN flag only applies to binary variant" >&2
+if [ "$VARIANT" != "npm" ] && [ "$VARIANT" != "code-writer-ts" ] && [ "$VARIANT" != "code-writer-go" ] && [ "$VARIANT" != "code-writer-py" ]; then
+    echo "Error: VARIANT must be 'npm', 'code-writer-ts', 'code-writer-go', or 'code-writer-py'" >&2
     exit 1
 fi
 
@@ -68,17 +61,8 @@ if [ "$VARIANT" == "code-writer-py" ]; then
 fi
 
 # Select Dockerfile and tag by variant
-if [ "$VARIANT" == "binary" ]; then
-    BASE_DIR="${SCRIPT_DIR}/base/binary"
-    if [ "$CN" == "true" ]; then
-        DOCKERFILE="${BASE_DIR}/Dockerfile.cn"
-        TAG="agents-with-multica:${PROJECT_VERSION}-${ARCH}-cn"
-    else
-        DOCKERFILE="${BASE_DIR}/Dockerfile"
-        TAG="agents-with-multica:${PROJECT_VERSION}-${ARCH}"
-    fi
-elif [ "$VARIANT" == "npm" ]; then
-    DOCKERFILE="${SCRIPT_DIR}/base/npm/Dockerfile"
+if [ "$VARIANT" == "npm" ]; then
+    DOCKERFILE="${SCRIPT_DIR}/base/Dockerfile"
     TAG="agents-with-multica-npm:${PROJECT_VERSION}-${ARCH}"
 elif [ "$VARIANT" == "code-writer-go" ]; then
     DOCKERFILE="${SCRIPT_DIR}/code-writer/go/Dockerfile"
@@ -94,7 +78,7 @@ fi
 echo "Building: TAG=${TAG} (variant=${VARIANT})"
 
 BUILD_ARGS=()
-if [ "$VARIANT" == "binary" ] || [ "$VARIANT" == "npm" ]; then
+if [ "$VARIANT" == "npm" ]; then
     CC_PROXY_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('${SCRIPT_DIR}/versions.yaml'))['cc_proxy']['version'])" 2>&1) || {
         echo "Error: failed to read cc_proxy version" >&2; exit 1
     }
