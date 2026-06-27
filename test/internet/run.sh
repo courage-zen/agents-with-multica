@@ -1,21 +1,21 @@
 #!/bin/bash
 set -e
 
-# agents-with-multica 部署脚本模板
-# 复制为 run.sh 并根据实际环境修改配置
+# agents-with-multica 外网部署脚本
+# 部署目录: ~/code/agents-with-multica/test/internet
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-IMAGE="${IMAGE:-YOUR_IMAGE_REGISTRY/agents-with-multica-npm:VERSION}"
+IMAGE="${IMAGE:-ghcr.io/courage-zen/agents-with-multica-npm:latest-arm64}"
 CONTAINER_NAME="${CONTAINER_NAME:-my-agent}"
 RUNTIME_NAME="${MULTICA_AGENT_RUNTIME_NAME:-${CONTAINER_NAME}}"
-DEVICE_NAME="${MULTICA_DAEMON_DEVICE_NAME:-${CONTAINER_NAME}}"
+DEVICE_NAME="${MULTICA_DAEMON_DEVICE_NAME:-ai-data-know-how}"
 DAEMON_ID="${MULTICA_DAEMON_ID:-}"
 
 MULTICA_CONFIG="${MULTICA_CONFIG:-${SCRIPT_DIR}/multica-config.json}"
 CC_PROXY_CONFIG="${CC_PROXY_CONFIG:-${SCRIPT_DIR}/cc-proxy-config.yaml}"
-WIKI_DIR="${WIKI_DIR:-${SCRIPT_DIR}/wiki}"
-SKILLS_DIR="${SKILLS_DIR:-${SCRIPT_DIR}/skills}"
+WIKI_DIR="${WIKI_DIR:-${SCRIPT_DIR}/../wiki}"
+SKILLS_DIR="${SKILLS_DIR:-${SCRIPT_DIR}/../skills}"
 
 if [ ! -f "${MULTICA_CONFIG}" ]; then
   echo "ERROR: multica config not found: ${MULTICA_CONFIG}" >&2

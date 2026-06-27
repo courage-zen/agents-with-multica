@@ -1,5 +1,5 @@
 # Stage 1: download cc-proxy
-FROM docker.1ms.run/alpine:3.20 AS cc-proxy-downloader
+FROM alpine:3.20 AS cc-proxy-downloader
 ARG CC_PROXY_VERSION
 ARG TARGETARCH
 RUN mkdir -p /out && \
@@ -8,7 +8,7 @@ RUN mkdir -p /out && \
     chmod +x /out/cc-proxy
 
 # Stage 2: download multica
-FROM docker.1ms.run/alpine:3.20 AS multica-downloader
+FROM alpine:3.20 AS multica-downloader
 ARG MULTICA_VERSION
 ARG TARGETARCH
 ARG ARCH=${TARGETARCH}
@@ -24,24 +24,14 @@ RUN mkdir -p /out && \
     chmod +x /out/multica && \
     rm /out/multica.tar.gz
 
-# Stage 3: download claude-code native binary
-FROM docker.1ms.run/alpine:3.20 AS claude-downloader
+# Stage 3: Install Claude Code via npm
+FROM node:22-bookworm-slim AS claude-install
 ARG CLAUDE_CODE_VERSION
-ARG TARGETARCH
-RUN mkdir -p /out && \
-    apk add --no-cache curl && \
-    case "${TARGETARCH}" in \
-    amd64) PLATFORM="linux-x64" ;; \
-    arm64) PLATFORM="linux-arm64" ;; \
-    *)     PLATFORM="linux-x64" ;; \
-    esac && \
-    curl -fsSL -o /out/claude "https://downloads.claude.ai/claude-code-releases/${CLAUDE_CODE_VERSION}/${PLATFORM}/claude" && \
-    chmod +x /out/claude
+RUN npm install -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}"
 
-# Stage 4: final image (Chinese mirror)
-FROM docker.1ms.run/debian:bookworm-slim
-RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources && \
-    apt-get update && \
+# Stage 4: final image
+FROM node:22-bookworm-slim
+RUN apt-get update && \
     apt-get install -y --no-install-recommends git ca-certificates curl sudo openssh-client && \
     rm -rf /var/lib/apt/lists/* && \
     useradd -m -s /bin/bash agent && \
@@ -49,8 +39,11 @@ RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debia
     chmod 0440 /etc/sudoers.d/agent
 COPY --from=cc-proxy-downloader /out/cc-proxy /usr/local/bin/cc-proxy
 COPY --from=multica-downloader /out/multica /usr/local/bin/multica
-COPY --from=claude-downloader /out/claude /usr/local/bin/claude
-COPY entrypoint.sh /entrypoint.sh
+COPY --from=claude-install /usr/local/lib/node_modules/@anthropic-ai/claude-code \
+                          /usr/local/lib/node_modules/@anthropic-ai/claude-code
+RUN ln -sf /usr/local/lib/node_modules/@anthropic-ai/claude-code/cli.js /usr/local/bin/claude && \
+    ln -sf /usr/local/lib/node_modules/@anthropic-ai/claude-code/cli.js /usr/local/bin/claude-code
+COPY base/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh && \
     mkdir -p /home/agent/wiki /home/agent/.claude/skills && \
     git config --system credential.helper store && \

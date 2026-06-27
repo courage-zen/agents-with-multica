@@ -1,15 +1,15 @@
 #!/bin/bash
 set -e
 
-# agents-with-multica 部署脚本模板
-# 复制为 run.sh 并根据实际环境修改配置
+# agents-with-multica 内网部署脚本 (192 服务器)
+# 部署目录: /home/zhengyong/config/agents-with-multica
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-IMAGE="${IMAGE:-YOUR_IMAGE_REGISTRY/agents-with-multica-npm:VERSION}"
-CONTAINER_NAME="${CONTAINER_NAME:-my-agent}"
+IMAGE="${IMAGE:-reg.telecomjs.com/eda-bigdata/agents-with-multica-npm:0.2.1-amd64}"
+CONTAINER_NAME="${CONTAINER_NAME:-intranet-agent}"
 RUNTIME_NAME="${MULTICA_AGENT_RUNTIME_NAME:-${CONTAINER_NAME}}"
-DEVICE_NAME="${MULTICA_DAEMON_DEVICE_NAME:-${CONTAINER_NAME}}"
+DEVICE_NAME="${MULTICA_DAEMON_DEVICE_NAME:-docker-192}"
 DAEMON_ID="${MULTICA_DAEMON_ID:-}"
 
 MULTICA_CONFIG="${MULTICA_CONFIG:-${SCRIPT_DIR}/multica-config.json}"
