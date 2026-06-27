@@ -64,9 +64,11 @@ project:
 cc_proxy:
   version: "0.1.0"
 multica:
-  version: "0.3.18"
+  version: "0.3.31"
 claude_code:
   version: "2.1.100"
+opencode:
+  version: "1.17.11"
 ```
 
 `code-writer-version.yaml` — code-writer-ts、code-writer-go 和 code-writer-py 版本：
