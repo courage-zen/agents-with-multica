@@ -2,7 +2,7 @@
 set -e
 
 if [ "$(id -u)" = "0" ]; then
-    mkdir -p /etc/multica /home/agent/.cc-proxy /home/agent/.multica /home/agent/.claude /home/agent/.claude/skills /home/agent/wiki
+    mkdir -p /etc/multica /etc/opencode /home/agent/.cc-proxy /home/agent/.multica /home/agent/.claude /home/agent/.claude/skills /home/agent/wiki /home/agent/.opencode
 
     # git credential 配置 (root 阶段，因为 su -p 不传自定义环境变量)
     if [ -n "${GIT_TOKEN:-}" ]; then
@@ -27,6 +27,11 @@ cp /etc/multica/config.json ~/.multica/config.json
 
 if [ ! -f ~/.cc-proxy/config.yaml ]; then
     echo "ERROR: ~/.cc-proxy/config.yaml not found (mount it as read-only volume)" >&2; exit 1
+fi
+
+# OpenCode 配置（可选）
+if [ -f /etc/opencode/opencode.json ]; then
+    cp /etc/opencode/opencode.json ~/.opencode/opencode.json
 fi
 
 RUNTIME_NAME="${MULTICA_AGENT_RUNTIME_NAME:-Docker}"
