@@ -1,0 +1,183 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agents-multica-config
+  namespace: eda-bigdata
+data:
+  multica-config.json: |
+    {
+      "server_url": "http://132.224.1.192:8080",
+      "app_url": "http://132.224.1.192:3000",
+      "workspace_id": "090f0cfd-7fb0-4d12-8651-bd138c64aa9a",
+      "token": "mul_9be555564647937da43fc3176e0c8f235558dc14"
+    }
+  cc-proxy-config.yaml: |
+    proxy:
+      listen: "127.0.0.1"
+      port: 15721
+      mode: "normal"
+
+    failover:
+      enabled: true
+      auto_switch: true
+
+    logging:
+      level: "debug"
+
+    providers:
+      - name: "内网-GLM-5.1"
+        type: openai_chat
+        api_key: "22f3226d6b014ef5bac88fea2701d42f"
+        base_url: "http://132.254.211.161:30000"
+        models:
+          - GLM-5.1
+        priority: 1
+        enabled: true
+        model_map:
+          default: "GLM-5.1"
+          sonnet: "GLM-5.1"
+          opus: "GLM-5.1"
+          haiku: "GLM-5.1"
+        api_format: "openai_chat"
+
+      - name: "内网-GLM-5"
+        type: openai_chat
+        api_key: "cad9c9fa34c34a1d8156c3f409eb0b5e"
+        base_url: "http://132.254.211.161:30000/v1"
+        models:
+          - GLM-5
+        priority: 2
+        enabled: true
+        model_map:
+          default: "GLM-5"
+          sonnet: "GLM-5"
+          opus: "GLM-5"
+          haiku: "GLM-5"
+        api_format: "openai_chat"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gitlab-token
+  namespace: eda-bigdata
+type: Opaque
+stringData:
+  token: "QXSdVU4845WHTuwUxgRK"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agents-with-multica-amd64
+  namespace: eda-bigdata
+  labels:
+    app: agents-with-multica-amd64
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agents-with-multica-amd64
+  template:
+    metadata:
+      labels:
+        app: agents-with-multica-amd64
+    spec:
+      nodeSelector:
+        kubernetes.io/arch: amd64
+      containers:
+      - name: agent
+        image: reg.telecomjs.com/eda-bigdata/agents-with-multica-npm:0.2.1-amd64
+        securityContext:
+          privileged: true
+        env:
+        - name: MULTICA_AGENT_RUNTIME_NAME
+          value: "k8s-agent-37-amd64"
+        - name: MULTICA_DAEMON_DEVICE_NAME
+          value: "k8s-agent-37-amd64"
+        - name: MULTICA_DAEMON_ID
+          value: "k8s-37-amd64-0.2.1-20260521"
+        - name: GIT_HOST
+          value: "gitlab.telecomjs.com:8443"
+        - name: GIT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: gitlab-token
+              key: token
+        - name: GIT_USERNAME
+          value: "oauth2"
+        volumeMounts:
+        - name: multica-config
+          mountPath: /etc/multica/config.json
+          subPath: multica-config.json
+          readOnly: true
+        - name: cc-proxy-config
+          mountPath: /home/agent/.cc-proxy/config.yaml
+          subPath: cc-proxy-config.yaml
+          readOnly: true
+      imagePullSecrets:
+      - name: reg-telecomjs-secret
+      volumes:
+      - name: multica-config
+        configMap:
+          name: agents-multica-config
+      - name: cc-proxy-config
+        configMap:
+          name: agents-multica-config
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agents-with-multica-arm64
+  namespace: eda-bigdata
+  labels:
+    app: agents-with-multica-arm64
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agents-with-multica-arm64
+  template:
+    metadata:
+      labels:
+        app: agents-with-multica-arm64
+    spec:
+      nodeSelector:
+        kubernetes.io/arch: arm64
+      containers:
+      - name: agent
+        image: reg.telecomjs.com/eda-bigdata/agents-with-multica-npm:0.2.1-arm64
+        securityContext:
+          privileged: true
+        env:
+        - name: MULTICA_AGENT_RUNTIME_NAME
+          value: "k8s-agent-37-arm64"
+        - name: MULTICA_DAEMON_DEVICE_NAME
+          value: "k8s-agent-37-arm64"
+        - name: MULTICA_DAEMON_ID
+          value: "k8s-37-arm64-0.2.1-20260521"
+        - name: GIT_HOST
+          value: "gitlab.telecomjs.com:8443"
+        - name: GIT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: gitlab-token
+              key: token
+        - name: GIT_USERNAME
+          value: "oauth2"
+        volumeMounts:
+        - name: multica-config
+          mountPath: /etc/multica/config.json
+          subPath: multica-config.json
+          readOnly: true
+        - name: cc-proxy-config
+          mountPath: /home/agent/.cc-proxy/config.yaml
+          subPath: cc-proxy-config.yaml
+          readOnly: true
+      imagePullSecrets:
+      - name: reg-telecomjs-secret
+      volumes:
+      - name: multica-config
+        configMap:
+          name: agents-multica-config
+      - name: cc-proxy-config
+        configMap:
+          name: agents-multica-config
