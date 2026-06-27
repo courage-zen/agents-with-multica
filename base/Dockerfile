@@ -27,7 +27,9 @@ RUN mkdir -p /out && \
 # Stage 3: Install Claude Code via npm
 FROM node:22-bookworm-slim AS claude-install
 ARG CLAUDE_CODE_VERSION
-RUN npm install -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}"
+ARG OPENCODE_VERSION
+RUN npm install -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" && \
+    npm install -g "opencode-ai@${OPENCODE_VERSION}"
 
 # Stage 4: final image
 FROM node:22-bookworm-slim
@@ -41,11 +43,14 @@ COPY --from=cc-proxy-downloader /out/cc-proxy /usr/local/bin/cc-proxy
 COPY --from=multica-downloader /out/multica /usr/local/bin/multica
 COPY --from=claude-install /usr/local/lib/node_modules/@anthropic-ai/claude-code \
                           /usr/local/lib/node_modules/@anthropic-ai/claude-code
+COPY --from=claude-install /usr/local/lib/node_modules/opencode-ai \
+                          /usr/local/lib/node_modules/opencode-ai
 RUN ln -sf /usr/local/lib/node_modules/@anthropic-ai/claude-code/cli.js /usr/local/bin/claude && \
-    ln -sf /usr/local/lib/node_modules/@anthropic-ai/claude-code/cli.js /usr/local/bin/claude-code
+    ln -sf /usr/local/lib/node_modules/@anthropic-ai/claude-code/cli.js /usr/local/bin/claude-code && \
+    ln -sf /usr/local/lib/node_modules/opencode-ai/cli.js /usr/local/bin/opencode
 COPY base/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh && \
-    mkdir -p /home/agent/wiki /home/agent/.claude/skills && \
+    mkdir -p /home/agent/wiki /home/agent/.claude/skills /home/agent/.opencode && \
     git config --system credential.helper store && \
     git config --system user.name agent && \
     git config --system user.email agent@container && \
