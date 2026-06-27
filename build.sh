@@ -4,8 +4,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 ARCH="${1:-amd64}"
-CN="${2:-false}"
-VARIANT="${3:-npm}"
+VARIANT="${2:-npm}"
 
 # Docker daemon pre-check
 docker info > /dev/null 2>&1 || { echo "Error: Docker is not available or daemon is not running" >&2; exit 1; }
