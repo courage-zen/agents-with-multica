@@ -76,16 +76,16 @@ claude_code:
 `code-writer-version.yaml` — code-writer-ts、code-writer-go 和 code-writer-py 版本：
 ```yaml
 code_writer_ts:
-  version: "0.1.0"
+  version: "0.1.1"
   node_version: "22"
 code_writer_go:
-  version: "0.1.0"
+  version: "0.1.1"
   go_version: "1.26"
   sqlc_version: "1.27.0"
   golangci_lint_version: "1.64.8"
   goose_version: "3.24.1"
 code_writer_py:
-  version: "0.1.0"
+  version: "0.1.2"
   python_version: "3.12"
   uv_version: "0.7.0"
 ```
@@ -97,8 +97,11 @@ Dockerfile 中的 ARG 无默认值，版本必须通过 `--build-arg` 从对应 
 ## 构建命令
 
 ```bash
-# 二进制版（标准源）
+# base 镜像（默认，变体名为 npm）
 ./build.sh amd64
+
+# 或显式指定变体
+./build.sh amd64 npm
 
 # 二进制版（国内镜像源）
 ./build.sh amd64 true
