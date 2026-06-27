@@ -4,7 +4,9 @@ cc_proxy:
   version: "0.1.0"
   repo: "courage-zen/cc-proxy"
 multica:
-  version: "0.3.18"
+  version: "0.3.31"
   repo: "multica-ai/multica"
 claude_code:
   version: "2.1.100"
+opencode:
+  version: "1.17.11"
