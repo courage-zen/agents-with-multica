@@ -47,7 +47,7 @@ COPY --from=claude-install /usr/local/lib/node_modules/opencode-ai \
                           /usr/local/lib/node_modules/opencode-ai
 RUN ln -sf /usr/local/lib/node_modules/@anthropic-ai/claude-code/cli.js /usr/local/bin/claude && \
     ln -sf /usr/local/lib/node_modules/@anthropic-ai/claude-code/cli.js /usr/local/bin/claude-code && \
-    ln -sf /usr/local/lib/node_modules/opencode-ai/cli.js /usr/local/bin/opencode
+    ln -sf /usr/local/lib/node_modules/opencode-ai/bin/opencode.exe /usr/local/bin/opencode
 COPY base/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh && \
     mkdir -p /home/agent/wiki /home/agent/.claude/skills /home/agent/.opencode && \
