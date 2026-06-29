@@ -47,10 +47,12 @@ jobs:
           CC_PROXY_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('versions.yaml'))['cc_proxy']['version'])")
           MULTICA_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('versions.yaml'))['multica']['version'])")
           CLAUDE_CODE_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('versions.yaml'))['claude_code']['version'])")
+          OPENCODE_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('versions.yaml'))['opencode']['version'])")
           echo "PROJECT_VERSION=$PROJECT_VERSION" >> $GITHUB_OUTPUT
           echo "CC_PROXY_VERSION=$CC_PROXY_VERSION" >> $GITHUB_OUTPUT
           echo "MULTICA_VERSION=$MULTICA_VERSION" >> $GITHUB_OUTPUT
           echo "CLAUDE_CODE_VERSION=$CLAUDE_CODE_VERSION" >> $GITHUB_OUTPUT
+          echo "OPENCODE_VERSION=$OPENCODE_VERSION" >> $GITHUB_OUTPUT
 
       - name: Build amd64
         uses: docker/build-push-action@v5
@@ -66,6 +68,7 @@ jobs:
             CC_PROXY_VERSION=${{ steps.versions.outputs.CC_PROXY_VERSION }}
             MULTICA_VERSION=${{ steps.versions.outputs.MULTICA_VERSION }}
             CLAUDE_CODE_VERSION=${{ steps.versions.outputs.CLAUDE_CODE_VERSION }}
+            OPENCODE_VERSION=${{ steps.versions.outputs.OPENCODE_VERSION }}
 
       - name: Build arm64
         uses: docker/build-push-action@v5
@@ -81,6 +84,7 @@ jobs:
             CC_PROXY_VERSION=${{ steps.versions.outputs.CC_PROXY_VERSION }}
             MULTICA_VERSION=${{ steps.versions.outputs.MULTICA_VERSION }}
             CLAUDE_CODE_VERSION=${{ steps.versions.outputs.CLAUDE_CODE_VERSION }}
+            OPENCODE_VERSION=${{ steps.versions.outputs.OPENCODE_VERSION }}
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
