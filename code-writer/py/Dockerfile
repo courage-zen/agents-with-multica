@@ -69,4 +69,4 @@ RUN echo "/opt/python3.12/lib" > /etc/ld.so.conf.d/python3.12.conf && ldconfig
 # 如果需要新增依赖，在有网机器上重新构建镜像
 # 临时覆盖：docker run -e UV_OFFLINE=0 ...
 ENV UV_OFFLINE=1
-RUN chown -R agent:agent /home/agent/.cache/uv /opt/python3.12/lib/site-packages
+RUN chown -R agent:agent /home/agent/.cache /opt/python3.12/lib/site-packages
