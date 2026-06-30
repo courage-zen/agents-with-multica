@@ -60,10 +60,11 @@ COPY --from=pip-cache /root/.cache/uv/ /home/agent/.cache/uv/
 COPY --from=pip-cache /tmp/cache-venv/lib/python3.12/site-packages/ /opt/python3.12/lib/site-packages/
 
 ENV PATH="/opt/python3.12/bin:${PATH}"
-ENV LD_LIBRARY_PATH="/opt/python3.12/lib"
 ENV PYTHONPATH="/opt/python3.12/lib/site-packages"
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+# 注册 Python 库路径到系统链接器，避免 LD_LIBRARY_PATH 全局污染影响 Node.js 进程
+RUN echo "/opt/python3.12/lib" > /etc/ld.so.conf.d/python3.12.conf && ldconfig
 # 运行时禁止 uv 网络访问 —— 只用预缓存的包
 # 如果需要新增依赖，在有网机器上重新构建镜像
 # 临时覆盖：docker run -e UV_OFFLINE=0 ...
