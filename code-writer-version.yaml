@@ -8,6 +8,6 @@ code_writer_go:
   golangci_lint_version: "1.64.8"
   goose_version: "3.24.1"
 code_writer_py:
-  version: "0.1.7"
+  version: "0.1.8"
   python_version: "3.12"
   uv_version: "0.7.0"

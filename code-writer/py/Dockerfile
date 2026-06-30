@@ -24,7 +24,7 @@ RUN mkdir -p /opt/python3.12 && \
     # 修复所有脚本的 shebang，使其指向新路径
     find /opt/python3.12/bin -type f -exec sed -i 's|#!/usr/local/bin/python3|#!/opt/python3.12/bin/python3|g' {} \;
 
-# Stage 2: uv offline cache — pre-download common Python development packages
+# Stage 2: pre-install common Python development packages
 FROM python:3.12-slim AS pip-cache
 ARG UV_VERSION
 RUN pip install --no-cache-dir uv==${UV_VERSION}
@@ -55,8 +55,7 @@ RUN apt-get update && \
 # Python toolchain（安装到 /opt/python3.12，不与 Node.js 冲突）
 COPY --from=python-toolchain /opt/python3.12/ /opt/python3.12/
 
-# Pre-cached Python packages（构建时下载，运行时 UV_OFFLINE=1 禁止网络访问）
-COPY --from=pip-cache /root/.cache/uv/ /home/agent/.cache/uv/
+# Pre-installed Python packages（直接安装到 site-packages，无需 uv cache）
 COPY --from=pip-cache /tmp/cache-venv/lib/python3.12/site-packages/ /opt/python3.12/lib/site-packages/
 
 ENV PATH="/opt/python3.12/bin:${PATH}"
@@ -65,8 +64,4 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 # 注册 Python 库路径到系统链接器，避免 LD_LIBRARY_PATH 全局污染影响 Node.js 进程
 RUN echo "/opt/python3.12/lib" > /etc/ld.so.conf.d/python3.12.conf && ldconfig
-# 运行时禁止 uv 网络访问 —— 只用预缓存的包
-# 如果需要新增依赖，在有网机器上重新构建镜像
-# 临时覆盖：docker run -e UV_OFFLINE=0 ...
-ENV UV_OFFLINE=1
-RUN chown -R agent:agent /home/agent/.cache /opt/python3.12/lib/site-packages
+RUN chown -R agent:agent /opt/python3.12/lib/site-packages
