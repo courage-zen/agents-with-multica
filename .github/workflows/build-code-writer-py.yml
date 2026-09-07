@@ -6,12 +6,12 @@ on:
       - main
     paths:
       - 'code-writer/py/**'
-      - 'code-writer-version.yaml'
+      - 'versions.yaml'
       - '.github/workflows/build-code-writer-py.yml'
   pull_request:
     paths:
       - 'code-writer/py/**'
-      - 'code-writer-version.yaml'
+      - 'versions.yaml'
       - '.github/workflows/build-code-writer-py.yml'
 
 jobs:
@@ -41,10 +41,8 @@ jobs:
       - name: Extract versions
         id: versions
         run: |
-          CODE_WRITER_PY_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('code-writer-version.yaml'))['code_writer_py']['version'])")
           PROJECT_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('versions.yaml'))['project']['version'])")
-          UV_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('code-writer-version.yaml'))['code_writer_py']['uv_version'])")
-          echo "CODE_WRITER_PY_VERSION=$CODE_WRITER_PY_VERSION" >> $GITHUB_OUTPUT
+          UV_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('versions.yaml'))['code_writer']['uv_version'])")
           echo "PROJECT_VERSION=$PROJECT_VERSION" >> $GITHUB_OUTPUT
           echo "UV_VERSION=$UV_VERSION" >> $GITHUB_OUTPUT
 
@@ -57,7 +55,7 @@ jobs:
           push: ${{ github.event_name == 'push' }}
           tags: |
             ghcr.io/courage-zen/agents-with-multica-code-writer-py:latest-amd64
-            ghcr.io/courage-zen/agents-with-multica-code-writer-py:${{ steps.versions.outputs.CODE_WRITER_PY_VERSION }}-amd64
+            ghcr.io/courage-zen/agents-with-multica-code-writer-py:${{ steps.versions.outputs.PROJECT_VERSION }}-amd64
           build-args: |
             BASE_IMAGE=ghcr.io/courage-zen/agents-with-multica-npm:${{ steps.versions.outputs.PROJECT_VERSION }}-amd64
             UV_VERSION=${{ steps.versions.outputs.UV_VERSION }}
@@ -71,7 +69,7 @@ jobs:
           push: ${{ github.event_name == 'push' }}
           tags: |
             ghcr.io/courage-zen/agents-with-multica-code-writer-py:latest-arm64
-            ghcr.io/courage-zen/agents-with-multica-code-writer-py:${{ steps.versions.outputs.CODE_WRITER_PY_VERSION }}-arm64
+            ghcr.io/courage-zen/agents-with-multica-code-writer-py:${{ steps.versions.outputs.PROJECT_VERSION }}-arm64
           build-args: |
             BASE_IMAGE=ghcr.io/courage-zen/agents-with-multica-npm:${{ steps.versions.outputs.PROJECT_VERSION }}-arm64
             UV_VERSION=${{ steps.versions.outputs.UV_VERSION }}

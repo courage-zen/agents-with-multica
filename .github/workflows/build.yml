@@ -101,12 +101,6 @@ jobs:
         run: |
           TAG_VERSION=${GITHUB_REF#refs/tags/v}
           echo "TAG_VERSION=$TAG_VERSION" >> $GITHUB_OUTPUT
-          CODE_WRITER_TS_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('code-writer-version.yaml'))['code_writer_ts']['version'])")
-          echo "CODE_WRITER_TS_VERSION=$CODE_WRITER_TS_VERSION" >> $GITHUB_OUTPUT
-          CODE_WRITER_GO_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('code-writer-version.yaml'))['code_writer_go']['version'])")
-          echo "CODE_WRITER_GO_VERSION=$CODE_WRITER_GO_VERSION" >> $GITHUB_OUTPUT
-          CODE_WRITER_PY_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('code-writer-version.yaml'))['code_writer_py']['version'])")
-          echo "CODE_WRITER_PY_VERSION=$CODE_WRITER_PY_VERSION" >> $GITHUB_OUTPUT
 
       - name: Login to GHCR
         uses: docker/login-action@v3
@@ -125,27 +119,19 @@ jobs:
 
       - name: Pull and save code-writer-ts images
         run: |
-          docker pull --platform linux/amd64 ghcr.io/courage-zen/agents-with-multica-code-writer-ts:${{ steps.version.outputs.CODE_WRITER_TS_VERSION }}-amd64
-          docker save ghcr.io/courage-zen/agents-with-multica-code-writer-ts:${{ steps.version.outputs.CODE_WRITER_TS_VERSION }}-amd64 | gzip > agents-with-multica-code-writer-ts-amd64.tar.gz
+          docker pull --platform linux/amd64 ghcr.io/courage-zen/agents-with-multica-code-writer-ts:${{ steps.version.outputs.TAG_VERSION }}-amd64
+          docker save ghcr.io/courage-zen/agents-with-multica-code-writer-ts:${{ steps.version.outputs.TAG_VERSION }}-amd64 | gzip > agents-with-multica-code-writer-ts-amd64.tar.gz
 
-          docker pull --platform linux/arm64 ghcr.io/courage-zen/agents-with-multica-code-writer-ts:${{ steps.version.outputs.CODE_WRITER_TS_VERSION }}-arm64
-          docker save ghcr.io/courage-zen/agents-with-multica-code-writer-ts:${{ steps.version.outputs.CODE_WRITER_TS_VERSION }}-arm64 | gzip > agents-with-multica-code-writer-ts-arm64.tar.gz
-
-      - name: Pull and save code-writer-go images
-        run: |
-          docker pull --platform linux/amd64 ghcr.io/courage-zen/agents-with-multica-code-writer-go:${{ steps.version.outputs.CODE_WRITER_GO_VERSION }}-amd64
-          docker save ghcr.io/courage-zen/agents-with-multica-code-writer-go:${{ steps.version.outputs.CODE_WRITER_GO_VERSION }}-amd64 | gzip > agents-with-multica-code-writer-go-amd64.tar.gz
-
-          docker pull --platform linux/arm64 ghcr.io/courage-zen/agents-with-multica-code-writer-go:${{ steps.version.outputs.CODE_WRITER_GO_VERSION }}-arm64
-          docker save ghcr.io/courage-zen/agents-with-multica-code-writer-go:${{ steps.version.outputs.CODE_WRITER_GO_VERSION }}-arm64 | gzip > agents-with-multica-code-writer-go-arm64.tar.gz
+          docker pull --platform linux/arm64 ghcr.io/courage-zen/agents-with-multica-code-writer-ts:${{ steps.version.outputs.TAG_VERSION }}-arm64
+          docker save ghcr.io/courage-zen/agents-with-multica-code-writer-ts:${{ steps.version.outputs.TAG_VERSION }}-arm64 | gzip > agents-with-multica-code-writer-ts-arm64.tar.gz
 
       - name: Pull and save code-writer-py images
         run: |
-          docker pull --platform linux/amd64 ghcr.io/courage-zen/agents-with-multica-code-writer-py:${{ steps.version.outputs.CODE_WRITER_PY_VERSION }}-amd64
-          docker save ghcr.io/courage-zen/agents-with-multica-code-writer-py:${{ steps.version.outputs.CODE_WRITER_PY_VERSION }}-amd64 | gzip > agents-with-multica-code-writer-py-amd64.tar.gz
+          docker pull --platform linux/amd64 ghcr.io/courage-zen/agents-with-multica-code-writer-py:${{ steps.version.outputs.TAG_VERSION }}-amd64
+          docker save ghcr.io/courage-zen/agents-with-multica-code-writer-py:${{ steps.version.outputs.TAG_VERSION }}-amd64 | gzip > agents-with-multica-code-writer-py-amd64.tar.gz
 
-          docker pull --platform linux/arm64 ghcr.io/courage-zen/agents-with-multica-code-writer-py:${{ steps.version.outputs.CODE_WRITER_PY_VERSION }}-arm64
-          docker save ghcr.io/courage-zen/agents-with-multica-code-writer-py:${{ steps.version.outputs.CODE_WRITER_PY_VERSION }}-arm64 | gzip > agents-with-multica-code-writer-py-arm64.tar.gz
+          docker pull --platform linux/arm64 ghcr.io/courage-zen/agents-with-multica-code-writer-py:${{ steps.version.outputs.TAG_VERSION }}-arm64
+          docker save ghcr.io/courage-zen/agents-with-multica-code-writer-py:${{ steps.version.outputs.TAG_VERSION }}-arm64 | gzip > agents-with-multica-code-writer-py-arm64.tar.gz
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -157,7 +143,5 @@ jobs:
             agents-with-multica-npm-arm64.tar.gz
             agents-with-multica-code-writer-ts-amd64.tar.gz
             agents-with-multica-code-writer-ts-arm64.tar.gz
-            agents-with-multica-code-writer-go-amd64.tar.gz
-            agents-with-multica-code-writer-go-arm64.tar.gz
             agents-with-multica-code-writer-py-amd64.tar.gz
             agents-with-multica-code-writer-py-arm64.tar.gz
