@@ -90,8 +90,8 @@ Dockerfile 中的 ARG 无默认值，版本必须通过 `--build-arg` 从 `versi
 ## 发布流程
 
 1. 更改版本号（`versions.yaml` 中的 `project.version` 及需要的组件版本）—— base、code-writer-ts、code-writer-py 共用此版本号
-2. commit + push to main → CI 自动构建所有变体镜像：
-   - `versions.yaml` 变更 → 同时触发 base、code-writer-ts、code-writer-py 构建
+2. commit + push to main → CI 自动按依赖顺序构建所有变体镜像（单一 workflow `build.yml`）：
+   - 先构建 base 镜像 → 再并行构建 code-writer-ts 和 code-writer-py（FROM base）
 3. 打 git tag 触发 Release 发布：
    ```
    git tag v{project.version}
