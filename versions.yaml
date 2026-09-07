@@ -1,5 +1,5 @@
 project:
-  version: "0.2.10"
+  version: "0.2.11"
 cc_proxy:
   version: "0.1.1"
   repo: "courage-zen/cc-proxy"
@@ -10,3 +10,7 @@ claude_code:
   version: "2.1.263"
 opencode:
   version: "1.18.29"
+code_writer:
+  node_version: "22"
+  python_version: "3.12"
+  uv_version: "0.7.0"
