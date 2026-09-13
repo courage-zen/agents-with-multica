@@ -40,7 +40,8 @@ code-writer-ts 基于 base 版扩展，额外提供：
 code-writer-py 基于 base 版扩展，额外提供：
 - Python 3.12 工具链（`UV_OFFLINE=1` 运行时禁止网络访问，只用预缓存包）
 - uv 包管理器（极速依赖安装和缓存管理）
-- 预缓存的 Python 包（FastAPI, uvicorn, SQLAlchemy, psycopg2-binary, redis, pydantic, pytest, pytest-asyncio, httpx, aiohttp 等），内网环境可通过 `uv pip install --offline` 安装
+- 预缓存的 Python 包（FastAPI, uvicorn, SQLAlchemy, psycopg2-binary, redis, pydantic, pytest, pytest-asyncio, httpx, aiohttp, mcp 2.2.0 等），内网环境可通过 `uv pip install --offline` 安装
+- sqlglot + sqlglotc（C 加速 tokenizer，构建期断言 `SQLGLOTC_INSTALLED`，两者版本必须严格一致）
 - 额外系统工具：make, jq, postgresql-client, redis-tools, vim-tiny
 
 ## 版本管理

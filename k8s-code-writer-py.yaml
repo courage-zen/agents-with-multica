@@ -1,0 +1,210 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agents-multica-code-writer-py-config
+  namespace: eda-bigdata
+data:
+  multica-config.json: |
+    {
+      "server_url": "http://132.224.1.192:8080",
+      "app_url": "http://132.224.1.192:3000",
+      "workspace_id": "090f0cfd-7fb0-4d12-8651-bd138c64aa9a",
+      "token": "mul_9be555564647937da43fc3176e0c8f235558dc14"
+    }
+  cc-proxy-config.yaml: |
+    proxy:
+      listen: "127.0.0.1"
+      port: 15721
+      mode: "normal"
+
+    failover:
+      enabled: true
+      auto_switch: true
+
+    logging:
+      level: "debug"
+
+    providers:
+      - name: "内网-DeepSeek-V4"
+        type: openai_chat
+        api_key: "f30491e877bf4c50965b93ac07ebf4e1"
+        base_url: "http://132.254.211.161:30000"
+        models:
+          - DeepSeek-V4-Pro
+        priority: 1
+        enabled: true
+        model_map:
+          default: "DeepSeek-V4-Pro"
+          sonnet: "DeepSeek-V4-Pro"
+          opus: "DeepSeek-V4-Pro"
+          haiku: "DeepSeek-V4-Flash"
+        api_format: "openai_chat"
+
+      - name: "内网-DeepSeek-V4-F"
+        type: openai_chat
+        api_key: "f30491e877bf4c50965b93ac07ebf4e1"
+        base_url: "http://132.254.211.161:30000/v1"
+        models:
+          - DeepSeek-V4-Flash
+        priority: 2
+        enabled: true
+        model_map:
+          default: "DeepSeek-V4-Flash"
+          sonnet: "DeepSeek-V4-Flash"
+          opus: "DeepSeek-V4-Flash"
+          haiku: "DeepSeek-V4-Flash"
+        api_format: "openai_chat"
+  opencode.json: |
+    {
+      "$schema": "https://opencode.ai/config.json",
+      "provider": {
+        "deepseek": {
+          "api": "openai",
+          "name": "DeepSeek",
+          "options": {
+            "apiKey": "f30491e877bf4c50965b93ac07ebf4e1",
+            "baseURL": "http://132.254.211.161:30000/v1"
+          },
+          "models": {
+            "deepseek-v4-pro": {
+              "name": "DeepSeek-V4-Pro"
+            },
+            "deepseek-v4-flash": {
+              "name": "DeepSeek-V4-Flash"
+            }
+          }
+        }
+      }
+    }
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gitlab-token
+  namespace: eda-bigdata
+type: Opaque
+stringData:
+  token: "QXSdVU4845WHTuwUxgRK"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agents-with-multica-code-writer-py-amd64
+  namespace: eda-bigdata
+  labels:
+    app: agents-with-multica-code-writer-py-amd64
+spec:
+  clusterIP: None
+  selector:
+    app: agents-with-multica-code-writer-py-amd64
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: agents-with-multica-code-writer-py-amd64
+  namespace: eda-bigdata
+  labels:
+    app: agents-with-multica-code-writer-py-amd64
+spec:
+  serviceName: agents-with-multica-code-writer-py-amd64
+  replicas: 2
+  selector:
+    matchLabels:
+      app: agents-with-multica-code-writer-py-amd64
+  template:
+    metadata:
+      labels:
+        app: agents-with-multica-code-writer-py-amd64
+    spec:
+      nodeSelector:
+        kubernetes.io/arch: amd64
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app: agents-with-multica-code-writer-py-amd64
+            topologyKey: kubernetes.io/hostname
+      initContainers:
+      - name: wiki-init
+        image: reg.telecomjs.com/eda-bigdata/wiki:202606-amd64
+        imagePullPolicy: IfNotPresent
+        command: ["cp", "-r", "/wiki/.", "/data/"]
+        volumeMounts:
+        - name: wiki-data
+          mountPath: /data
+      containers:
+      - name: agent
+        image: reg.telecomjs.com/eda-bigdata/agents-with-multica-code-writer-py:0.1.8-amd64
+        securityContext:
+          privileged: true
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: MULTICA_AGENT_RUNTIME_NAME
+          value: "k8s-37-py-$(POD_NAME)"
+        - name: MULTICA_DAEMON_DEVICE_NAME
+          value: "k8s-37-py-$(POD_NAME)"
+        - name: MULTICA_DAEMON_ID
+          value: "k8s-37-py-$(POD_NAME)"
+        - name: GIT_HOST
+          value: "gitlab.telecomjs.com:8443"
+        - name: GIT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: gitlab-token
+              key: token
+        - name: GIT_USERNAME
+          value: "oauth2"
+        livenessProbe:
+          exec:
+            command:
+            - curl
+            - -sf
+            - http://127.0.0.1:19514/health
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+            - curl
+            - -sf
+            - http://127.0.0.1:15721/health
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        volumeMounts:
+        - name: multica-config
+          mountPath: /etc/multica/config.json
+          subPath: multica-config.json
+          readOnly: true
+        - name: cc-proxy-config
+          mountPath: /home/agent/.cc-proxy/config.yaml
+          subPath: cc-proxy-config.yaml
+          readOnly: true
+        - name: opencode-config
+          mountPath: /etc/opencode/opencode.json
+          subPath: opencode.json
+          readOnly: true
+        - name: wiki-data
+          mountPath: /home/agent/wiki
+          readOnly: true
+      imagePullSecrets:
+      - name: reg-telecomjs-secret
+      volumes:
+      - name: multica-config
+        configMap:
+          name: agents-multica-code-writer-py-config
+      - name: cc-proxy-config
+        configMap:
+          name: agents-multica-code-writer-py-config
+      - name: opencode-config
+        configMap:
+          name: agents-multica-code-writer-py-config
+      - name: wiki-data
+        emptyDir: {}
