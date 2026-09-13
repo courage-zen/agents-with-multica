@@ -40,10 +40,17 @@ RUN uv venv /tmp/cache-venv && \
         pytest-asyncio \
         httpx \
         aiohttp \
-        'mcp[cli]' \
-        sqlglot \
+        'mcp[cli]==2.2.0' \
+        'sqlglot==30.18.0' \
+        'sqlglotc==30.18.0' \
         pymysql \
         python-dotenv
+
+# 断言 C 加速已激活（sqlglotc 的 .so 覆盖 sqlglot 模块）
+# 若镜像源缺 sqlglotc wheel 会静默回退纯 Python，此步强制失败暴露问题
+RUN /tmp/cache-venv/bin/python -c "from sqlglot import tokens; \
+    assert tokens.SQLGLOTC_INSTALLED, 'sqlglotc 未激活：tokenizer_core 仍为 .py（纯 Python 回退）'; \
+    print('sqlglotc C 加速已激活')"
 
 # Stage 3: final image — layered on top of the npm base image
 FROM ${BASE_IMAGE}
