@@ -8,8 +8,6 @@ multica:
   repo: "multica-ai/multica"
 claude_code:
   version: "2.1.296"
-opencode:
-  version: "1.18.35"
 code_writer:
   node_version: "22"
   python_version: "3.12"

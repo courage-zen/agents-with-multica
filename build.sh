@@ -57,21 +57,16 @@ if [ "$VARIANT" == "npm" ]; then
     CLAUDE_CODE_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('${SCRIPT_DIR}/versions.yaml'))['claude_code']['version'])" 2>&1) || {
         echo "Error: failed to read claude_code version" >&2; exit 1
     }
-    OPENCODE_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('${SCRIPT_DIR}/versions.yaml'))['opencode']['version'])" 2>&1) || {
-        echo "Error: failed to read opencode version" >&2; exit 1
-    }
     BUILD_ARGS=(
         "--build-arg" "CC_PROXY_VERSION=${CC_PROXY_VERSION}"
         "--build-arg" "MULTICA_VERSION=${MULTICA_VERSION}"
         "--build-arg" "CLAUDE_CODE_VERSION=${CLAUDE_CODE_VERSION}"
-        "--build-arg" "OPENCODE_VERSION=${OPENCODE_VERSION}"
         "--build-arg" "TARGETARCH=${ARCH}"
     )
     echo "  PROJECT_VERSION=${PROJECT_VERSION}"
     echo "  CC_PROXY_VERSION=${CC_PROXY_VERSION}"
     echo "  MULTICA_VERSION=${MULTICA_VERSION}"
     echo "  CLAUDE_CODE_VERSION=${CLAUDE_CODE_VERSION}"
-    echo "  OPENCODE_VERSION=${OPENCODE_VERSION}"
 elif [ "$VARIANT" == "code-writer-py" ]; then
     UV_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('${SCRIPT_DIR}/versions.yaml'))['code_writer']['uv_version'])" 2>&1) || {
         echo "Error: failed to read uv version" >&2; exit 1

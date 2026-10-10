@@ -60,8 +60,6 @@ multica:
   repo: "multica-ai/multica"
 claude_code:
   version: "2.1.263"
-opencode:
-  version: "1.18.29"
 code_writer:
   node_version: "22"
   python_version: "3.12"

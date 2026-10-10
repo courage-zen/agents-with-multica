@@ -1,14 +1,12 @@
 # agents-with-multica
 
-Docker images for running AI coding agents (claude-code and opencode) with unified cloud infrastructure via [multica](https://github.com/multica-ai/multica).
+Docker images for running AI coding agents (claude-code) with unified cloud infrastructure via [multica](https://github.com/multica-ai/multica).
 
 ## Images
 
 | Image | GHCR |
 |---|---|
 | claude | `ghcr.io/courage-zen/agents-with-multica-claude:<tag>` |
-| opencode | `ghcr.io/courage-zen/agents-with-multica-opencode:<tag>` |
-| all | `ghcr.io/courage-zen/agents-with-multica-all:<tag>` |
 
 Tags follow the pattern `<arch>[-cn]` where `<arch>` is `amd64` or `arm64`. The `-cn` variant uses Chinese proxy mirrors for base images.
 
@@ -16,11 +14,7 @@ Example full image reference:
 
 ```
 ghcr.io/courage-zen/agents-with-multica-claude:amd64
-ghcr.io/courage-zen/agents-with-multica-opencode:arm64
-ghcr.io/courage-zen/agents-with-multica-all:amd64-cn
 ```
-
-The `all` image packages both agents and selects which one to run at startup via the `AGENT` environment variable (defaults to `claude`).
 
 ## Usage
 
@@ -38,20 +32,6 @@ docker run -d \
   ghcr.io/courage-zen/agents-with-multica-claude:amd64
 ```
 
-### opencode
-
-Only needs multica credentials (no cc-proxy for opencode):
-
-```sh
-docker run -d \
-  -e AGENT=opencode \
-  -e MULTICA_TOKEN="mul_xxx" \
-  -e MULTICA_WORKSPACE_ID="your-workspace-id" \
-  -e MULTICA_SERVER_URL="http://your-server:18080" \
-  -e MULTICA_RUNTIME_NAME="my-opencode-agent" \
-  ghcr.io/courage-zen/agents-with-multica-all:amd64
-```
-
 ### Environment Variables
 
 | Variable | Required | Description |
@@ -60,7 +40,6 @@ docker run -d \
 | `MULTICA_WORKSPACE_ID` | Yes | Workspace ID to register the runtime into |
 | `MULTICA_SERVER_URL` | Yes | Multica server URL (e.g. `http://117.72.202.195:18080`) |
 | `MULTICA_RUNTIME_NAME` | No | Display name for this runtime (default: `Docker-<agent>`) |
-| `AGENT` | No | Which agent to run: `claude` or `opencode` (default: `claude`) |
 
 ## Configuration
 
@@ -106,7 +85,7 @@ Use the provided `build.sh` script. It reads versions from the agent's `versions
 
 **Arguments:**
 
-- `agent` — Which agent to build: `claude`, `opencode`, or `all` (default: `all`)
+- `agent` — Which agent to build: `claude` or `all` (default: `all`)
 - `arch` — Target architecture: `amd64` or `arm64` (default: `amd64`)
 - `cn`  — Pass `true` to use the Chinese mirror Dockerfile variant (default: `false`)
 
@@ -118,9 +97,6 @@ Use the provided `build.sh` script. It reads versions from the agent's `versions
 
 # Build claude for arm64 with CN mirrors
 ./build.sh claude arm64 true
-
-# Build opencode for amd64
-./build.sh opencode
 ```
 
 The resulting image is tagged `agents-with-multica-<agent>:<arch>[-cn]`.
@@ -130,7 +106,6 @@ The resulting image is tagged `agents-with-multica-<agent>:<arch>[-cn]`.
 Component versions are pinned in `versions.yaml` files inside each agent directory:
 
 - `/claude/versions.yaml`  — claude agent versions
-- `/opencode/versions.yaml` — opencode agent versions
 - `/all/versions.yaml`    — shared versions for the all-in-one image
 
 To update a version, edit the corresponding file and rebuild. The `build.sh` script reads these files automatically at build time.
@@ -140,5 +115,3 @@ To update a version, edit the corresponding file and rebuild. The `build.sh` scr
 | Image | Components | Notes |
 |---|---|---|
 | `claude` | multica, cc-proxy, claude-code | Failover relay enabled |
-| `opencode` | multica, opencode | Direct provider calls via multica |
-| `all` | multica + optionally cc-proxy, claude-code, opencode | Agent selected at runtime via `AGENT` |
