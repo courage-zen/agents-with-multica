@@ -4,7 +4,7 @@ Docker 容器化的 Claude Code + multica agent 部署方案。
 
 ## 项目结构
 
-- `base/` — 基础镜像（Claude Code via npm on Node.js 22 + cc-proxy + multica）
+- `base/` — 基础镜像（Claude Code via npm on Node.js 22 + cc-proxy + multica + multica-stdio-mcp-proxy）
 - `code-writer/ts/` — TS 开发版（FROM base 镜像 + tsx/typescript + npm 离线缓存 + 额外系统工具）
 - `code-writer/py/` — Python 开发版（FROM base 镜像 + Python 3.12 + uv + 离线缓存 + 额外系统工具）
 - `versions.yaml` — 所有镜像版本号（base、code-writer-ts、code-writer-py 共用 `project.version`）
@@ -26,7 +26,7 @@ node:22-bookworm-slim → agents-with-multica-npm (base)
 
 | 变体 | 基础镜像 | 额外能力 | 镜像名 |
 |------|---------|---------|--------|
-| base | `node:22-bookworm-slim` | — | `agents-with-multica-npm` |
+| base | `node:22-bookworm-slim` | multica stdio MCP proxy | `agents-with-multica-npm` |
 | code-writer-ts | base 镜像 | tsx/typescript + npm 离线缓存 + make/jq/psql/redis-cli | `agents-with-multica-code-writer-ts` |
 | code-writer-py | base 镜像 | Python 3.12 + uv + 离线缓存 + make/jq/psql/redis-cli | `agents-with-multica-code-writer-py` |
 
@@ -69,6 +69,8 @@ code_writer:
 `project.version` 是所有镜像（base、code-writer-ts、code-writer-py）的统一版本号，升级时只需 bump 这一个字段。`code_writer` 下的 `node_version`/`python_version`/`uv_version` 是各变体 Dockerfile 的构建参数，与版本号无关。
 
 Dockerfile 中的 ARG 无默认值，版本必须通过 `--build-arg` 从 `versions.yaml` 传入，禁止硬编码。code-writer-ts/code-writer-py Dockerfile 的 `BASE_IMAGE` ARG 指向 base 镜像。
+
+**私有依赖**：`cc-proxy` 和 `multica-stdio-mcp-proxy` 是 private repo 的 GitHub Release。构建前由 `build.sh`（本地，用已认证的 `gh`）/ CI（用 `CC_PROXY_TOKEN` secret，同一 token 覆盖两个 repo）下载到 `binaries/${ARCH}/`，Dockerfile 只 COPY。凭证不会进入任何镜像层。
 
 ## 构建命令
 

@@ -1,11 +1,15 @@
 project:
-  version: "0.2.14"
+  version: "0.3.0"
 cc_proxy:
-  version: "0.2.0"
+  version: "0.4.1"
   repo: "courage-zen/cc-proxy"
 multica:
   version: "0.4.43"
   repo: "multica-ai/multica"
+multica_stdio_mcp_proxy:
+  version: "0.1.0"
+  repo: "courage-zen/multica-stdio-mcp-proxy"
+  # repo 为 private：CI 通过 CC_PROXY_TOKEN secret 下载（与 cc-proxy 共用）
 claude_code:
   version: "2.1.296"
 code_writer:

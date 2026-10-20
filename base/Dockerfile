@@ -1,13 +1,4 @@
-# Stage 1: download cc-proxy
-FROM alpine:3.20 AS cc-proxy-downloader
-ARG CC_PROXY_VERSION
-ARG TARGETARCH
-RUN mkdir -p /out && \
-    apk add --no-cache curl && \
-    curl -fsSL -o /out/cc-proxy "https://github.com/courage-zen/cc-proxy/releases/download/v${CC_PROXY_VERSION}/cc-proxy-${TARGETARCH}" && \
-    chmod +x /out/cc-proxy
-
-# Stage 2: download multica
+# Stage 1: download multica
 FROM alpine:3.20 AS multica-downloader
 ARG MULTICA_VERSION
 ARG TARGETARCH
@@ -24,20 +15,26 @@ RUN mkdir -p /out && \
     chmod +x /out/multica && \
     rm /out/multica.tar.gz
 
-# Stage 3: Install Claude Code via npm
+# multica-stdio-mcp-proxy and cc-proxy come from private GitHub releases:
+# build.sh / CI download them with authenticated gh into binaries/ before
+# docker build, so the Dockerfile only COPYs them (no token in any layer).
+
+# Stage 2: Install Claude Code via npm
 FROM node:22-bookworm-slim AS claude-install
 ARG CLAUDE_CODE_VERSION
 RUN npm install -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}"
 
-# Stage 4: final image
+# Stage 3: final image
 FROM node:22-bookworm-slim
+ARG TARGETARCH
 RUN apt-get update && \
     apt-get install -y --no-install-recommends git ca-certificates curl sudo openssh-client && \
     rm -rf /var/lib/apt/lists/* && \
     useradd -m -s /bin/bash agent && \
     echo "agent ALL=(ALL) NOPASSWD: /usr/local/bin/cc-proxy start -c /home/agent/.cc-proxy" >> /etc/sudoers.d/agent && \
     chmod 0440 /etc/sudoers.d/agent
-COPY --from=cc-proxy-downloader /out/cc-proxy /usr/local/bin/cc-proxy
+COPY binaries/${TARGETARCH}/cc-proxy /usr/local/bin/cc-proxy
+COPY binaries/${TARGETARCH}/multica-stdio-mcp-proxy /usr/local/bin/multica-stdio-mcp-proxy
 COPY --from=multica-downloader /out/multica /usr/local/bin/multica
 COPY --from=claude-install /usr/local/lib/node_modules/@anthropic-ai/claude-code \
                           /usr/local/lib/node_modules/@anthropic-ai/claude-code

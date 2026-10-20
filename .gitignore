@@ -6,3 +6,4 @@ test/
 config/multica-config.json
 config/cc-proxy-config.yaml
 .worktrees/
+binaries/

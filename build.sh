@@ -54,11 +54,22 @@ if [ "$VARIANT" == "npm" ]; then
     MULTICA_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('${SCRIPT_DIR}/versions.yaml'))['multica']['version'])" 2>&1) || {
         echo "Error: failed to read multica version" >&2; exit 1
     }
+    MULTICA_STDIO_MCP_PROXY_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('${SCRIPT_DIR}/versions.yaml'))['multica_stdio_mcp_proxy']['version'])" 2>&1) || {
+        echo "Error: failed to read multica_stdio_mcp_proxy version" >&2; exit 1
+    }
     CLAUDE_CODE_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('${SCRIPT_DIR}/versions.yaml'))['claude_code']['version'])" 2>&1) || {
         echo "Error: failed to read claude_code version" >&2; exit 1
     }
+    mkdir -p "${SCRIPT_DIR}/binaries/${ARCH}"
+    # cc-proxy and multica-stdio-mcp-proxy are private releases: download with
+    # the locally authenticated gh (CI uses the CC_PROXY_TOKEN secret)
+    gh release download "v${CC_PROXY_VERSION}" -R courage-zen/cc-proxy \
+        -p "cc-proxy-${ARCH}" -O "${SCRIPT_DIR}/binaries/${ARCH}/cc-proxy" --clobber
+    chmod +x "${SCRIPT_DIR}/binaries/${ARCH}/cc-proxy"
+    gh release download "v${MULTICA_STDIO_MCP_PROXY_VERSION}" -R courage-zen/multica-stdio-mcp-proxy \
+        -p "multica-stdio-mcp-proxy-linux-${ARCH}" -O "${SCRIPT_DIR}/binaries/${ARCH}/multica-stdio-mcp-proxy" --clobber
+    chmod +x "${SCRIPT_DIR}/binaries/${ARCH}/multica-stdio-mcp-proxy"
     BUILD_ARGS=(
-        "--build-arg" "CC_PROXY_VERSION=${CC_PROXY_VERSION}"
         "--build-arg" "MULTICA_VERSION=${MULTICA_VERSION}"
         "--build-arg" "CLAUDE_CODE_VERSION=${CLAUDE_CODE_VERSION}"
         "--build-arg" "TARGETARCH=${ARCH}"
@@ -66,6 +77,7 @@ if [ "$VARIANT" == "npm" ]; then
     echo "  PROJECT_VERSION=${PROJECT_VERSION}"
     echo "  CC_PROXY_VERSION=${CC_PROXY_VERSION}"
     echo "  MULTICA_VERSION=${MULTICA_VERSION}"
+    echo "  MULTICA_STDIO_MCP_PROXY_VERSION=${MULTICA_STDIO_MCP_PROXY_VERSION}"
     echo "  CLAUDE_CODE_VERSION=${CLAUDE_CODE_VERSION}"
 elif [ "$VARIANT" == "code-writer-py" ]; then
     UV_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('${SCRIPT_DIR}/versions.yaml'))['code_writer']['uv_version'])" 2>&1) || {

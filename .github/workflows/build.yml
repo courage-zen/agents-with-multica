@@ -9,6 +9,7 @@ on:
       - 'code-writer/ts/**'
       - 'code-writer/py/**'
       - 'versions.yaml'
+      - 'build.sh'
       - '.github/workflows/build.yml'
     tags:
       - 'v*'
@@ -18,6 +19,7 @@ on:
       - 'code-writer/ts/**'
       - 'code-writer/py/**'
       - 'versions.yaml'
+      - 'build.sh'
       - '.github/workflows/build.yml'
 
 jobs:
@@ -50,11 +52,35 @@ jobs:
           PROJECT_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('versions.yaml'))['project']['version'])")
           CC_PROXY_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('versions.yaml'))['cc_proxy']['version'])")
           MULTICA_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('versions.yaml'))['multica']['version'])")
+          MULTICA_STDIO_MCP_PROXY_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('versions.yaml'))['multica_stdio_mcp_proxy']['version'])")
           CLAUDE_CODE_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('versions.yaml'))['claude_code']['version'])")
           echo "PROJECT_VERSION=$PROJECT_VERSION" >> $GITHUB_OUTPUT
           echo "CC_PROXY_VERSION=$CC_PROXY_VERSION" >> $GITHUB_OUTPUT
           echo "MULTICA_VERSION=$MULTICA_VERSION" >> $GITHUB_OUTPUT
+          echo "MULTICA_STDIO_MCP_PROXY_VERSION=$MULTICA_STDIO_MCP_PROXY_VERSION" >> $GITHUB_OUTPUT
           echo "CLAUDE_CODE_VERSION=$CLAUDE_CODE_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Download private release binaries (cc-proxy, multica-stdio-mcp-proxy)
+        env:
+          GH_TOKEN: ${{ secrets.CC_PROXY_TOKEN }}
+          CC_PROXY_VERSION: ${{ steps.versions.outputs.CC_PROXY_VERSION }}
+          MULTICA_STDIO_MCP_PROXY_VERSION: ${{ steps.versions.outputs.MULTICA_STDIO_MCP_PROXY_VERSION }}
+        run: |
+          set -e
+          if [ -z "${GH_TOKEN}" ]; then
+            echo "ERROR: CC_PROXY_TOKEN secret not set (token with contents:read on courage-zen/cc-proxy and courage-zen/multica-stdio-mcp-proxy)" >&2
+            exit 1
+          fi
+          mkdir -p binaries/amd64 binaries/arm64
+          gh release download "v${CC_PROXY_VERSION}" -R courage-zen/cc-proxy \
+            -p "cc-proxy-amd64" -O "binaries/amd64/cc-proxy" --clobber
+          gh release download "v${CC_PROXY_VERSION}" -R courage-zen/cc-proxy \
+            -p "cc-proxy-arm64" -O "binaries/arm64/cc-proxy" --clobber
+          gh release download "v${MULTICA_STDIO_MCP_PROXY_VERSION}" -R courage-zen/multica-stdio-mcp-proxy \
+            -p "multica-stdio-mcp-proxy-linux-amd64" -O "binaries/amd64/multica-stdio-mcp-proxy" --clobber
+          gh release download "v${MULTICA_STDIO_MCP_PROXY_VERSION}" -R courage-zen/multica-stdio-mcp-proxy \
+            -p "multica-stdio-mcp-proxy-linux-arm64" -O "binaries/arm64/multica-stdio-mcp-proxy" --clobber
+          chmod +x binaries/amd64/* binaries/arm64/*
 
       - name: Build amd64
         uses: docker/build-push-action@v5
@@ -67,9 +93,9 @@ jobs:
             ghcr.io/courage-zen/agents-with-multica-npm:latest-amd64
             ghcr.io/courage-zen/agents-with-multica-npm:${{ steps.versions.outputs.PROJECT_VERSION }}-amd64
           build-args: |
-            CC_PROXY_VERSION=${{ steps.versions.outputs.CC_PROXY_VERSION }}
             MULTICA_VERSION=${{ steps.versions.outputs.MULTICA_VERSION }}
             CLAUDE_CODE_VERSION=${{ steps.versions.outputs.CLAUDE_CODE_VERSION }}
+            TARGETARCH=amd64
 
       - name: Build arm64
         uses: docker/build-push-action@v5
@@ -82,9 +108,9 @@ jobs:
             ghcr.io/courage-zen/agents-with-multica-npm:latest-arm64
             ghcr.io/courage-zen/agents-with-multica-npm:${{ steps.versions.outputs.PROJECT_VERSION }}-arm64
           build-args: |
-            CC_PROXY_VERSION=${{ steps.versions.outputs.CC_PROXY_VERSION }}
             MULTICA_VERSION=${{ steps.versions.outputs.MULTICA_VERSION }}
             CLAUDE_CODE_VERSION=${{ steps.versions.outputs.CLAUDE_CODE_VERSION }}
+            TARGETARCH=arm64
 
   build-code-writer-ts:
     needs: build

@@ -43,6 +43,23 @@ docker run -d \
 
 ## Configuration
 
+### Private release dependencies
+
+`courage-zen/cc-proxy` and `courage-zen/multica-stdio-mcp-proxy` are private.
+Local builds download them with the authenticated GitHub CLI before Docker
+builds the base image:
+
+```sh
+gh release download v0.4.1 -R courage-zen/cc-proxy \
+  -p cc-proxy-amd64 -O binaries/amd64/cc-proxy
+gh release download v0.1.0 -R courage-zen/multica-stdio-mcp-proxy \
+  -p multica-stdio-mcp-proxy-linux-amd64 -O binaries/amd64/multica-stdio-mcp-proxy
+```
+
+CI uses the `CC_PROXY_TOKEN` repository secret — one token with
+`Contents: Read` access to both private repositories. `build.sh` performs the
+same downloads automatically from `versions.yaml`.
+
 ### cc-proxy config (for claude agent only)
 
 Mount a cc-proxy `cc-proxy-config.yaml` at `~/.cc-proxy/config.yaml:ro`. This file defines the LLM providers and failover behavior.
@@ -114,4 +131,42 @@ To update a version, edit the corresponding file and rebuild. The `build.sh` scr
 
 | Image | Components | Notes |
 |---|---|---|
-| `claude` | multica, cc-proxy, claude-code | Failover relay enabled |
+| `claude` | multica, multica-stdio-mcp-proxy, cc-proxy, claude-code | Failover relay enabled |
+
+The base image installs `/usr/local/bin/multica-stdio-mcp-proxy`. Configure it as
+a stdio MCP server when an agent needs to reach a remote HTTP MCP endpoint:
+
+```json
+{
+  "mcpServers": {
+    "remote-mcp": {
+      "command": "multica-stdio-mcp-proxy",
+      "env": {
+        "MCP_PROXY_URL": "https://mcp.example.com/mcp",
+        "MCP_PROXY_AUTH": "Bearer <upstream-token>",
+        "MCP_PROXY_MULTICA_URL": "http://ng.example.com:8080",
+        "MCP_PROXY_MULTICA_GATEWAY_TOKEN": "<ng-token>"
+      }
+    }
+  }
+}
+```
+
+Equivalent command-line flags are also supported and override these environment
+defaults:
+
+```json
+{
+  "mcpServers": {
+    "remote-mcp": {
+      "command": "multica-stdio-mcp-proxy",
+      "args": [
+        "--url",
+        "https://mcp.example.com/mcp",
+        "--token",
+        "<upstream-token>"
+      ]
+    }
+  }
+}
+```
