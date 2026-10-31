@@ -27,12 +27,14 @@ RUN npm install -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}"
 # Stage 3: final image
 FROM node:22-bookworm-slim
 ARG TARGETARCH
+# bubblewrap/socat/ripgrep: Claude Code sandbox runtime dependencies
+# (bwrap = filesystem+network isolation, socat = network relay, rg = /sandbox dependency)
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends git ca-certificates curl sudo openssh-client && \
+    apt-get install -y --no-install-recommends \
+        git ca-certificates curl sudo openssh-client \
+        bubblewrap socat ripgrep && \
     rm -rf /var/lib/apt/lists/* && \
-    useradd -m -s /bin/bash agent && \
-    echo "agent ALL=(ALL) NOPASSWD: /usr/local/bin/cc-proxy start -c /home/agent/.cc-proxy" >> /etc/sudoers.d/agent && \
-    chmod 0440 /etc/sudoers.d/agent
+    useradd -m -s /bin/bash agent
 COPY binaries/${TARGETARCH}/cc-proxy /usr/local/bin/cc-proxy
 COPY binaries/${TARGETARCH}/multica-stdio-mcp-proxy /usr/local/bin/multica-stdio-mcp-proxy
 COPY --from=multica-downloader /out/multica /usr/local/bin/multica
@@ -47,5 +49,8 @@ RUN chmod +x /entrypoint.sh && \
     git config --system user.name agent && \
     git config --system user.email agent@container && \
     chown -R agent:agent /home/agent
+# Non-root by default: K8s securityContext (runAsNonRoot) and Docker non-privileged
+# runs rely on this; entrypoint.sh no longer has a root/su branch.
+USER agent
 WORKDIR /home/agent
 ENTRYPOINT ["/entrypoint.sh"]

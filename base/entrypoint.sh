@@ -1,22 +1,27 @@
 #!/bin/bash
 set -e
 
+# Non-root entrypoint: K8s securityContext (runAsNonRoot, allowPrivilegeEscalation=false,
+# capabilities.drop=ALL) and non-privileged docker run both assume agent (uid from image).
+# cc-proxy listens on 127.0.0.1:15721 (unprivileged port) — no sudo needed.
+
 if [ "$(id -u)" = "0" ]; then
-    mkdir -p /etc/multica /home/agent/.cc-proxy /home/agent/.multica /home/agent/.claude /home/agent/.claude/skills /home/agent/wiki
+    echo "ERROR: entrypoint must run as agent (non-root). Rebuild the image; USER agent is set in the Dockerfile." >&2
+    exit 1
+fi
 
-    # git credential 配置 (root 阶段，因为 su -p 不传自定义环境变量)
-    if [ -n "${GIT_TOKEN:-}" ]; then
-        GIT_USERNAME="${GIT_USERNAME:-oauth2}"
-        GIT_HOST="${GIT_HOST:-}"
-        if [ -n "${GIT_HOST}" ]; then
-            echo "https://${GIT_USERNAME}:${GIT_TOKEN}@${GIT_HOST}" > /home/agent/.git-credentials
-            chown agent:agent /home/agent/.git-credentials
-            chmod 600 /home/agent/.git-credentials
-        fi
+mkdir -p ~/.multica ~/.cc-proxy ~/.claude ~/.claude/skills ~/wiki
+
+# git credential: written by agent into own home; GIT_TOKEN is unset afterwards so it
+# does not leak into Claude Code's env (and from there into MCP child processes).
+if [ -n "${GIT_TOKEN:-}" ]; then
+    GIT_USERNAME="${GIT_USERNAME:-oauth2}"
+    GIT_HOST="${GIT_HOST:-}"
+    if [ -n "${GIT_HOST}" ]; then
+        echo "https://${GIT_USERNAME}:${GIT_TOKEN}@${GIT_HOST}" > ~/.git-credentials
+        chmod 600 ~/.git-credentials
     fi
-
-    chown agent:agent /home/agent/.multica /home/agent/.cc-proxy /home/agent /home/agent/.claude || true
-    exec su -p -s /bin/bash agent -c "HOME=/home/agent exec $0"
+    unset GIT_TOKEN
 fi
 
 if [ ! -f /etc/multica/config.json ]; then
@@ -32,7 +37,7 @@ fi
 RUNTIME_NAME="${MULTICA_AGENT_RUNTIME_NAME:-Docker}"
 DEVICE_NAME="${MULTICA_DAEMON_DEVICE_NAME:-Docker}"
 
-sudo -n cc-proxy start -c /home/agent/.cc-proxy &
+cc-proxy start -c /home/agent/.cc-proxy &
 
 for i in $(seq 1 10); do
     curl -sf http://127.0.0.1:15721/health && break
