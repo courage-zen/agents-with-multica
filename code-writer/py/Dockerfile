@@ -53,7 +53,9 @@ RUN /tmp/cache-venv/bin/python -c "from sqlglot import tokens; \
     print('sqlglotc C 加速已激活')"
 
 # Stage 3: final image — layered on top of the npm base image
+# Base image ends with USER agent; root is required for apt installs and chown.
 FROM ${BASE_IMAGE}
+USER root
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         make jq postgresql-client redis-tools vim-tiny && \
@@ -72,3 +74,4 @@ ENV PYTHONUNBUFFERED=1
 # 注册 Python 库路径到系统链接器，避免 LD_LIBRARY_PATH 全局污染影响 Node.js 进程
 RUN echo "/opt/python3.12/lib" > /etc/ld.so.conf.d/python3.12.conf && ldconfig
 RUN chown -R agent:agent /opt/python3.12/lib/site-packages
+USER agent
