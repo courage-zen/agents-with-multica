@@ -1,6 +1,6 @@
-# K8s 部署:主方案 seccompProfile Unconfined
+# K8s 部署:备选方案 seccompProfile Unconfined
 
-> 三篇中的路线篇之一。原理、settings.json、公共排错见 `sandbox-k8s-base.md`;备选路线(保留容器级 seccomp)见 `sandbox-k8s-localhost.md`。**本路线为 2026-11-01 定稿的主方案**:零节点依赖、无需管理员参与,代价是放弃容器级 seccomp syscall 过滤(§2 详述缺点)。
+> 三篇中的路线篇之一。原理、settings.json、公共排错见 `sandbox-k8s-base.md`;**主方案(保留容器级 seccomp,安全优先)见 `sandbox-k8s-localhost.md`**。本路线零节点依赖、无需管理员参与,代价是放弃容器级 seccomp syscall 过滤(§2 详述缺点——**切换到本路线前必读**)。曾于 2026-11-01 短暂定为主方案(治理顾虑驱动),同日经安全权衡反转:安全优先,Localhost 为主方案;本路线保留给主方案运维负担失控或快速验证场景。
 
 ## 1. 部署配置
 
@@ -87,16 +87,15 @@ K8s 1.25 的 Pod Security Standards `restricted` 级要求 seccompProfile ∈ {R
 | 安全审计工具报容器无 seccomp | §2.3 的预期观感问题 | 评估是否切 Localhost 路线过合规;或向审计方说明取舍 |
 | `grep Seccomp /proc/self/status` 输出 0 | Unconfined 的正常状态(不是故障) | 无需处理;输出 2 反而说明配错(残留了别的 profile) |
 
-## 5. 何时应切换到备选路线
+## 5. 何时应选用本路线(而不是 Localhost 主方案)
 
-- 目标 namespace 强制 PSS restricted(§3-1 检查发现);
-- 安全评审 / 合规要求"容器必须启用 seccomp"(§2.3);
-- 管理员愿意接管 profile 分发、把节点初始化流程覆盖到新节点(备选路线的最大运维负担消失);
-- 企业纵深防御基线要求 syscall 白名单(§2.1)。
+- 主方案的每节点运维负担(localhost 文档 §2.1)失控:新节点频繁加入且管理员无法配合,`CreateContainerError` 反复出现;
+- 目标 namespace 未强制 PSS restricted,且安全评审明确接受 §2.1-§2.4 的全部代价(丢 syscall 过滤 / 合规观感 / NetworkPolicy 成唯一闸门);
+- **快速验证场景**:临时探针 / 测试 Pod 想立刻起(目标节点可能没 profile 文件,Unconfined 无依赖即起)。
 
-切换操作:seccompProfile 改 `type: Localhost` + 按备选文档分发 profile。两路线的 settings.json、镜像、探针完全相同,无迁移成本。
+切换操作:seccompProfile 改 `type: Unconfined`。两路线的 settings.json、镜像、探针完全相同,无迁移成本;已分发的节点文件留着即可(惰性,无副作用)。
 
-## 6. 待办(本路线)
+## 6. 待办(本路线,仅当选定本路线时执行)
 
 - [ ] 目标 namespace PSS 标签检查(§3-1,上 StatefulSet 前必做);
 - [ ] StatefulSet `k8s-cc-sandbox` 从 `privileged: true` 切换为 §1 的硬化 securityContext + Unconfined;

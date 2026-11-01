@@ -1,6 +1,6 @@
-# K8s 部署:备选方案 Localhost + 自定义 seccomp profile
+# K8s 部署:主方案 Localhost + 自定义 seccomp profile
 
-> 三篇中的路线篇之一。原理、settings.json、公共排错见 `sandbox-k8s-base.md`;主方案(零节点依赖)见 `sandbox-k8s-unconfined.md`。**本路线保留容器级 seccomp syscall 过滤**——隔离强度更高、兼容 PSS restricted,代价是每节点运维依赖(§2 详述缺点)。2026-11-01 定稿为**备选**:当主方案的缺点(见 unconfined 文档 §2)不可接受时切换到此。
+> 三篇中的路线篇之一。原理、settings.json、公共排错见 `sandbox-k8s-base.md`;零节点依赖的备选见 `sandbox-k8s-unconfined.md`。**本路线保留容器级 seccomp syscall 过滤**——隔离强度更高、兼容 PSS restricted,代价是每节点文件依赖(§2 详述代价,§5 给出无 SSH 权限时的自救路径)。**2026-11-01 定稿(修订):以安全考虑为主方案**——容器内全部进程仍在 syscall 白名单内运行,纵深防御完整;此前一度以 Unconfined 为主(治理顾虑),经权衡安全优先级后反转。
 
 ## 1. profile 是什么
 
@@ -19,9 +19,9 @@
 - 未动 `bpf` / `perf_event_open` / `perf` 等高危规则(它们仍要求 CAP_SYS_ADMIN / CAP_BPF);
 - 攻击面增量 = "非特权进程可创建 namespace"——正是 bwrap、systemd、Chrome sandbox 等众多 Linux 软件的标准运行前提,内核(≥3.12,该节点 4.19)对非特权 userns 有完整的安全模型(映射后进程在新 ns 内拥有全部 cap 但对宿主 ns 无效)。
 
-**与 Unconfined 的本质区别**:本路线 `Seccomp=2`(过滤器生效),容器内所有进程仍在 syscall 白名单内运行;Unconfined 是 `Seccomp=0` 完全裸跑。bwrap 沙箱本身的隔离两路线相同——差距在沙箱外那圈(容器级)防护。
+**与 Unconfined 的本质区别**:本路线 `Seccomp=2`(过滤器生效),容器内所有进程(MCP 子进程、cc-proxy、hooks 等)都在 syscall 白名单内运行;Unconfined 是 `Seccomp=0` 完全裸跑。bwrap 沙箱本身的隔离两路线相同——差距在沙箱外那圈(容器级)防护,这也是本方案被定为主方案的原因。
 
-## 2. 与 Unconfined(主方案)相比的缺点(决策前必读)
+## 2. 与 Unconfined(备选)相比的代价(为安全增益支付的对价)
 
 ### 2.1 每节点文件依赖(核心缺点,运维负担)
 
@@ -55,10 +55,10 @@
 
 **第一步:分发 profile 到节点**。kubelet seccomp 根目录(`<kubelet-root>/seccomp/`,containerd 默认 `/var/lib/kubelet/seccomp/`)。两种方式:
 
-- 运维批量下发(推荐):把 `test/intranet/bwrap-seccomp-profile.json` 拷到所有 arm64 节点 seccomp 目录(天翼云实际路径 `/data/aikube/kubelet/seccomp/`,见 §4);
-- DaemonSet 特权兜底(若无运维通道):用 hostPath 挂 kubelet seccomp 目录的特权 DaemonSet 写入,见 §5。
+- 运维批量下发(有 SSH / 登录节点权限时):把 `test/intranet/bwrap-seccomp-profile.json` 拷到所有 arm64 节点 seccomp 目录(天翼云实际路径 `/data/aikube/kubelet/seccomp/`,见 §4);
+- **临时 Pod / DaemonSet(无 SSH 权限时的自救)**:见 §5——内网 agent 实际采用的方式,新节点出问题时也是**最快解法**。
 
-**第二步:Pod spec 引用 profile**(与主方案的差异只在 seccompProfile 一段):
+**第二步:Pod spec 引用 profile**(与备选 Unconfined 的差异只在 seccompProfile 一段):
 
 ```yaml
 securityContext:
@@ -86,12 +86,64 @@ securityContext:
 
 **天翼云特有事实(本路线必读)**:
 
-- **kubelet seccomp 目录非默认**:该集群 kubelet 根为 `/data/aikube/kubelet/`,seccomp 目录为 `/data/aikube/kubelet/seccomp/`(默认 `/var/lib/kubelet/seccomp/` 会报 CreateContainerError,从报错原文中发现并修正)。§5 DaemonSet 的 hostPath path 需相应改;
-- profile 分发已覆盖全部 30 个 arm64 节点(DaemonSet 方式,装完即删);profile 源文件保留在运维机的 `/data/web-file/bwrap-seccomp-profile.json`;
-- **新节点加入 / 节点重装需重新分发 profile**,否则调度到该节点的 Pod 起不来(CreateContainerError 即此症状)——本路线 §2.1 的核心运维负担;
-- 当前采用主方案 Unconfined,已分发的节点文件**无需清理**(惰性文件,无人引用即无效果),留作本路线的现成资产(切回时即刻可用)。
+- **kubelet seccomp 目录非默认**:该集群 kubelet 根为 `/data/aikube/kubelet/`,seccomp 目录为 `/data/aikube/kubelet/seccomp/`(默认 `/var/lib/kubelet/seccomp/` 会报 CreateContainerError,从报错原文中发现并修正)。§5 分发 Pod 的 hostPath path 用此路径;
+- profile 分发已覆盖全部 30 个 arm64 节点(§5 临时 Pod / DaemonSet 方式,装完即删);profile 源文件保留在运维机的 `/data/web-file/bwrap-seccomp-profile.json`;
+- **新节点加入 / 节点重装需重新分发 profile**,否则调度到该节点的 Pod 起不来(CreateContainerError 即此症状)——本路线 §2.1 的核心运维负担,修复走 §5.3 runbook;
+- **无节点 SSH / 登录权限**:一切宿主机操作都经 §5 的临时 Pod 完成,后续 agent 同样照此办理。
 
-## 5. DaemonSet 分发 profile(无运维通道时的兜底)
+## 5. 无 SSH / 节点登录权限时的自救:临时 Pod 分发(核心操作,后续 agent 必读)
+
+**背景**:我们没有直接 SSH 或登录节点主机的权限。2026-11-01 实测中,内网 agent 的解法是——**起一个挂 hostPath 的特权临时 Pod(或 DaemonSet),从 Pod 内部写宿主机文件**。这条路已走通(30 节点全部分发成功),后续 agent 遇到新节点缺文件 / 初次部署 / 无权限时,**照抄本节是最快解法**,不必再摸索。
+
+### 5.1 原理
+
+K8s 挂 `hostPath` volume 即可读写宿主机目录(需 Pod 有足够权限——`privileged: true` 或节点上的目录对 Pod 运行用户可写)。临时 Pod 本质是"借 K8s 的手替你 SSH":调度到目标节点 → 容器内看到宿主机的 kubelet seccomp 目录 → `cp` 写入 → 删 Pod。
+
+### 5.2 操作步骤(照抄即可)
+
+**1)创建 ConfigMap 存 profile**(如果还没有):
+
+```sh
+kubectl -n <ns> create configmap bwrap-seccomp-profile \
+  --from-file=bwrap-seccomp-profile.json=test/intranet/bwrap-seccomp-profile.json
+```
+
+**2)起分发 Pod**——临时 Pod(单节点定点修复,最快)或 DaemonSet(全集群覆盖,新节点自动含在内):
+
+临时 Pod 版(定点:修复某个缺文件的节点,如 `CreateContainerError` 的 Pod 所在节点):
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: seccomp-installer
+spec:
+  restartPolicy: Never
+  nodeName: <目标节点名>          # 定点分发到指定节点;省略则由调度器决定
+  containers:
+  - name: installer
+    image: <内网仓库>/busybox:latest
+    command: ["sh", "-c"]
+    args:
+    - |
+      mkdir -p /host/seccomp
+      cat /profile/bwrap-seccomp-profile.json > /host/seccomp/bwrap-seccomp-profile.json
+      echo "== written =="
+      ls -l /host/seccomp/
+  volumeMounts:
+  - { name: profile, mountPath: /profile, readOnly: true }
+  - { name: hostseccomp, mountPath: /host/seccomp }
+  volumes:
+  - name: profile
+    configMap:
+      name: bwrap-seccomp-profile
+  - name: hostseccomp
+    hostPath:
+      path: /data/aikube/kubelet/seccomp   # 天翼云实际路径;其他集群按 <kubelet-root>/seccomp
+      type: DirectoryOrCreate
+```
+
+DaemonSet 版(全量:初次部署 / 大批量缺文件,天翼云 2026-11-01 实际采用):
 
 ```yaml
 apiVersion: apps/v1
@@ -105,10 +157,9 @@ spec:
     metadata:
       labels: { app: seccomp-installer }
     spec:
-      hostPID: false
       containers:
       - name: installer
-        image: <内网仓库>/busybox:latest   # 或任意可用镜像
+        image: <内网仓库>/busybox:latest
         command: ["sh", "-c"]
         args:
         - |
@@ -128,21 +179,51 @@ spec:
           type: DirectoryOrCreate
 ```
 
-其中 ConfigMap `bwrap-seccomp-profile` 从 profile JSON 创建。安装 DaemonSet 是特权操作(需能创建特权 Pod 的权限);装完后可删除,但**新节点问题(§2.1)随之回归**——长期看它不是解决方案,只是初次部署的等价物。
+**3)验证写入**:
+
+```sh
+kubectl logs seccomp-installer            # 应看到 "== written ==" 与文件列表
+kubectl exec seccomp-installer -- ls -l /host/seccomp/
+```
+
+**4)删除临时资源**(装完即删,不留常驻面):
+
+```sh
+kubectl delete pod seccomp-installer
+kubectl delete daemonset seccomp-profile-installer   # DaemonSet 版
+kubectl -n <ns> delete configmap bwrap-seccomp-profile  # 可留可删;删了下次重建即可
+```
+
+### 5.3 新节点问题:发现与修复的完整套路(后续 agent 的 runbook)
+
+症状:`k8s-cc-sandbox` 的 Pod `CreateContainerError`,事件里 kubelet 报 profile 文件相关错误(或探针 Pod 起不来)。
+
+1. **定位节点**:`kubectl get pod <pod> -o wide` 看调度到哪个节点;
+2. **确认是缺文件**(大概率):该节点晚于 2026-11-01 加入 / 被重装过;
+3. **定点修复**:起 §5.2 的临时 Pod 版,`nodeName` 填该节点,几分钟完成;
+4. **验证**:删掉出问题的 Pod 让 StatefulSet 重建,或直接在临时探针 Pod 重跑三探针(base 文档 §4);
+5. **长效机制**:向管理员报备,请求把 profile 分发纳入节点初始化(这样新节点不再依赖手动操作);在此之前,新节点问题是已知运维负担。
+
+### 5.4 判读与坑
+
+- **hostPath 路径是天翼云特有** `/data/aikube/kubelet/seccomp`——默认路径 `/var/lib/kubelet/seccomp/` 在该集群会 CreateContainerError(2026-11-01 从报错逆向发现)。新集群 / 新环境先确认 kubelet 根(可从 kubelet 报错原文、`kubectl get -o yaml node` 的 kubelet 配置、或问管理员);
+- 写入权限:hostPath 默认 root 可写——特权 Pod 或 `runAsUser: 0` 即可(天翼云实测用了 `privileged: true + runAsUser: 0`);若 namespace RBAC 拒绝创建特权 Pod,说明该路被收,只能走管理员通道;
+- 特权 Pod 是敏感操作:一次性用完即删(§5.2-4),不要常驻;这暴露"非管理员 namespace 能起特权 Pod"本身是集群 RBAC 该收紧的点——用它没问题,但要自知;
+- DaemonSet 装完即删的话,**之后新节点问题照旧**——DaemonSet 常驻才自动覆盖新节点,但常驻特权 DaemonSet 是更差的安全姿态。权衡:**定点临时 Pod 修复 + 推动管理员纳入节点初始化**是正解。
 
 ## 6. 本路线专属排错
 
 | 症状 | 根因 | 处理 |
 |---|---|---|
-| Pod `CreateContainerError`,kubelet 日志报 seccomp profile 文件找不到 | 节点缺 profile 文件(§2.1) | 补分发到该节点;长期方案是纳入节点初始化 |
+| Pod `CreateContainerError`,kubelet 日志报 seccomp profile 文件找不到 | 节点缺 profile 文件(§2.1) | **走 §5.3 runbook**:定位节点 → §5.2 临时 Pod 定点补分发 → 重建验证;长期方案是纳入节点初始化 |
 | 探针报 `No permissions to create new namespace` 但 Seccomp=2 | profile 未生效(挂错文件 / 路径不对) | `kubectl describe pod` 看 seccomp 实际引用路径;核对节点上文件内容与仓库版本一致 |
-| 切换 profile 版本后行为异常 | 节点文件与 Git 源漂移(§2.3) | 全量重新分发 + sha256 校对 |
+| 临时 Pod 写 hostPath 报 Permission denied | Pod 无特权 / 非 root | 加 `privileged: true` 或 `runAsUser: 0`(§5.4);被 RBAC 拒绝则只能走管理员通道 |
+| 切换 profile 版本后行为异常 | 节点文件与 Git 源漂移(§2.3) | 全量重新分发(§5.2 DaemonSet 版) + sha256 校对 |
 
-## 7. 何时应选本路线(而不是主方案)
+## 7. 何时应切换到备选(Unconfined)路线
 
-- 目标 namespace 强制 PSS restricted(Unconfined Pod 会被拒收);
-- 安全评审 / 合规要求容器必须启用 seccomp(等保基线常见要求);
-- 管理员愿意把 profile 分发纳入节点初始化流程(§2.1/§2.2 的负担被组织性吸收);
-- 要求 syscall 白名单级纵深防御(防内核 0-day 的攻击面收敛)。
+- 管理员无法/不愿配合,且新节点频繁加入导致 §2.1 的运维负担失控;
+- 目标 namespace 未强制 PSS restricted,且安全评审接受"丢容器级 seccomp"的取舍(备选文档 §2 有完整的缺点分析,切换前必读);
+- 临时场景需要快速起探针 Pod 验证(节点没文件时 Unconfined 立即可用)。
 
-切换操作:seccompProfile 改 `type: Localhost` + 按 §3 分发 profile。两路线的 settings.json、镜像、探针完全相同,无迁移成本。
+切换操作:seccompProfile 改 `type: Unconfined`。两路线的 settings.json、镜像、探针完全相同,无迁移成本。已分发的节点文件留着即可(惰性,无副作用)。

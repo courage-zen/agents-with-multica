@@ -1,6 +1,6 @@
 # Claude Code 原生沙箱:原理与公共配置(v0.3.1 起)
 
-本镜像自 v0.3.1 起内置 Claude Code 原生沙箱(bubblewrap + socat + ripgrep)。本文讲**沙箱怎么工作**(原理)、settings.json 注入与 Docker 部署,以及两条 K8s seccomp 路线的公共背景。K8s 部署按路线分两篇:**主方案 `sandbox-k8s-unconfined.md`**(seccompProfile: Unconfined,零节点依赖),**备选 `sandbox-k8s-localhost.md`**(Localhost + 自定义 profile,保留容器级 seccomp)。方案背景与实施步骤详见 `sandbox.md`,逐项验证清单详见 `sandbox-verification.md`。
+本镜像自 v0.3.1 起内置 Claude Code 原生沙箱(bubblewrap + socat + ripgrep)。本文讲**沙箱怎么工作**(原理)、settings.json 注入与 Docker 部署,以及两条 K8s seccomp 路线的公共背景。K8s 部署按路线分两篇:**主方案 `sandbox-k8s-localhost.md`**(Localhost + 自定义 profile,保留容器级 seccomp,安全优先),**备选 `sandbox-k8s-unconfined.md`**(seccompProfile: Unconfined,零节点依赖)。方案背景与实施步骤详见 `sandbox.md`,逐项验证清单详见 `sandbox-verification.md`。
 
 ## 1. 沙箱原理
 
@@ -90,7 +90,7 @@ K8s 侧通过既有 ConfigMap + subPath 机制注入 `~/.claude/settings.json`(�
 - `failIfUnavailable: true`:bwrap 起不来时 CC 启动报错而非降级裸跑——在两条 seccomp 路线下都是失败可见性的保险;
 - `excludedCommands` + `permissions.allow`:git 网络子命令在沙箱外直跑(凭证 helper 正常),headless 下不卡权限;本地 git 子命令仍在沙箱内;
 - `allowedDomains` 是 **Bash 合法出站小清单**(内网 npm registry、cc-proxy 端口);数仓 / 模型域名**不列**——那些流量走 MCP / cc-proxy 通道,根本不经过沙箱代理;
-- MCP 通道的出网约束由 **NetworkPolicy** 承担(放行 multica server、bigdata-mcp、LLM provider、git、npm registry,默认拒绝其余)。主方案 Unconfined 下这层是 pod 出网的**唯一**边界(见部署文档),必须与沙箱同期上线。
+- MCP 通道的出网约束由 **NetworkPolicy** 承担(放行 multica server、bigdata-mcp、LLM provider、git、npm registry,默认拒绝其余)。备选 Unconfined 路线下这层是 pod 出网的**唯一**边界(见该路线文档 §2.4);主方案 Localhost 下它与容器级 seccomp 分工不同、互为纵深,仍必须与沙箱同期上线。
 
 版本下限:`sandbox.credentials` ≥ 2.1.187(deny)/ mask ≥ 2.1.221;镜像锁 2.1.296 满足。
 
@@ -109,7 +109,7 @@ docker run -d \
   "${IMAGE}"
 ```
 
-Docker 的 `--security-opt seccomp:<file>` 直接读本地 JSON,无需分发到节点——Docker 场景默认直接用自定义 profile(与 K8s 主方案不同:这里加 profile 零成本,没有治理权衡)。删除 `--privileged` 与 `--network host`。
+Docker 的 `--security-opt seccomp:<file>` 直接读本地 JSON,无需分发到节点——Docker 场景默认直接用自定义 profile(与 K8s 治理权衡无关:这里加 profile 零成本),即 Docker 侧与 K8s 主方案 Localhost 同样是"保留 seccomp"的姿态。删除 `--privileged` 与 `--network host`。
 
 ## 4. 沙箱前提:seccomp 与 userns(两条路线的公共背景)
 
@@ -127,8 +127,8 @@ bwrap 需要创建 user namespace。**K8s 默认 `seccompProfile: RuntimeDefault
 
 由此只有两条可行路线,分两篇文档:
 
-- **主方案 `sandbox-k8s-unconfined.md`**:seccompProfile: Unconfined,零节点依赖;
-- **备选 `sandbox-k8s-localhost.md`**:Localhost + 自定义 profile,保留容器级 seccomp。
+- **主方案 `sandbox-k8s-localhost.md`**:Localhost + 自定义 profile,保留容器级 seccomp(2026-11-01 定稿,安全优先;profile 分发到无 SSH 权限的节点走该文档 §5 的临时 Pod 方式);
+- **备选 `sandbox-k8s-unconfined.md`**:seccompProfile: Unconfined,零节点依赖,切换条件见该文档 §5。
 
 两路线探针命令(测试 Pod 内以 agent 跑,可用 `command: ["sh","-c","sleep 7200"]` 覆盖 entrypoint):
 
@@ -146,7 +146,7 @@ bwrap --ro-bind / / --proc /proc --unshare-user --unshare-net true; echo "C exit
 
 | 症状 | 根因 | 处理 |
 |---|---|---|
-| `bwrap: No permissions to create new namespace` | seccomp 拦 CLONE_NEWUSER(§4)| 确认 seccompProfile 为 Unconfined(主)或 Localhost + profile 已分发(备);`grep Seccomp /proc/self/status`:Unconfined 应为 0,Localhost 应为 2 |
+| `bwrap: No permissions to create new namespace` | seccomp 拦 CLONE_NEWUSER(§4)| 确认 seccompProfile 为 Localhost + profile 已分发(主)或 Unconfined(备);`grep Seccomp /proc/self/status`:Localhost 应为 2,Unconfined 应为 0 |
 | `Can't mount proc on /newroot/proc` | /proc 挂载被拦(本集群未出现) | settings 加 `enableWeakerNestedSandbox: true`(先确认容器层有边界) |
 | CC 启动报 sandbox unavailable | `failIfUnavailable` 生效,bwrap 缺失或被拦 | 同上两项;镜像内 `which bwrap socat rg` 应全在 |
 | 沙箱内 curl 私网 IP 失败 | NO_PROXY 推直连,netns 无路由 | 预期行为;私网主机用**主机名**进 allowedDomains |
