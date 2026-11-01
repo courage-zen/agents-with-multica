@@ -193,7 +193,7 @@ securityContext:
     type: Unconfined        # 主方案;RuntimeDefault 会拦 CLONE_NEWUSER,bwrap 起不来
 ```
 
-- **seccomp 路线(2026-11-01 定稿)**:主方案 `Unconfined`(零节点依赖,无需管理员参与),备选 `Localhost + 自定义 profile`(更强隔离,但每节点要分发文件)。完整对比、前置检查(PSS restricted 标签、NetworkPolicy 同期)、实测记录见 `docs/sandbox-k8s.md` §2。
+- **seccomp 路线(2026-11-01 定稿)**:主方案 `Unconfined`(零节点依赖,无需管理员参与),备选 `Localhost + 自定义 profile`(更强隔离,但每节点要分发文件)。完整对比、前置检查(PSS restricted 标签、NetworkPolicy 同期)、实测记录见 `docs/sandbox-k8s-base.md` §4 与两路线文档。
 - `readOnlyRootFilesystem: true` 可后续再加,需为 `/tmp`、`/var/tmp`(及 `/home/agent` 若根文件系统只读)挂 `emptyDir` / tmpfs;未处理挂载前先省略,其余硬化项独立生效。
 - 硬化后必须重跑 `docs/sandbox-verification.md` §0 探针(天翼云 2026-11-01 已实测:Unconfined 与 Localhost + profile 两路线三探针全绿)。
 
