@@ -34,7 +34,7 @@ bwrap --ro-bind / / --proc /proc true; echo exit=$?
 
 - `exit=0` → CC 沙箱所需能力齐备,`enableWeakerNestedSandbox` **确认不需要**,继续 §1。
 - 报错 `Can't mount proc on /newroot/proc: Operation not permitted` → **模式 A**(/proc 挂载被拦):在注入的 `settings.json` 的 `sandbox` 块设 `"enableWeakerNestedSandbox": true`,重跑本探针应转绿;**启用前提**是外层容器硬化 + NetworkPolicy 已就位(官方明确该选项削弱安全,仅当外层容器提供隔离边界时才可用)。
-- 报错 `No permissions to create new namespace...` → **模式 B**(userns 创建被拦):`enableWeakerNestedSandbox` 救不了。排查 `sysctl kernel.unprivileged_userns_clone`(应为 1;为 0 是宿主策略,容器内改不了)、容器运行时 seccomp(gVisor/runsc 则必然失败)。K8s 下先确认 `seccompProfile: RuntimeDefault` 不拦 unshare(多数发行版默认不拦,实测为准)。模式 B 无解时 → 跳 §5 fallback。
+- 报错 `No permissions to create new namespace...` → **模式 B**(userns 创建被拦):`enableWeakerNestedSandbox` 救不了。排查 `sysctl kernel.unprivileged_userns_clone`(应为 1;为 0 是宿主策略,容器内改不了)、容器运行时 seccomp。**K8s 下 `seccompProfile: RuntimeDefault` 必拦 unshare(containerd/moby 默认 profile 对非 CAP_SYS_ADMIN 进程掩码拒绝全部 namespace flag)——这不是故障,是预期行为,解法见 `sandbox-k8s.md` §2:主方案 Unconfined,备选 Localhost + 自定义 profile**(2026-11-01 天翼云已实测,两路线三探针全绿)。模式 B 无解时 → 跳 §5 fallback。
 
 > **注意**:旧版记录的"`bwrap --ro-bind / / true` exit=0 → enableWeakerNestedSandbox 不需要"结论已作废——该命令不触发 /proc 挂载,不覆盖模式 A。必须以本探针结果为准(2026-10-31 修正,见 sandbox.md §6.1)。
 
@@ -129,7 +129,7 @@ mv /tmp/bwrap.bak "$(which bwrap)"   # 恢复
 去掉 `--privileged` / `--network host` 并加 securityContext(前置:entrypoint 非 root 重构完成)后:
 
 - 容器能起来:agent 非 root 直启 cc-proxy(不再 sudo)、`.git-credentials` 由 agent 分支写入、无 root/su 报错;
-- 重跑 §0 探针 A/B:确认 RuntimeDefault seccomp 不拦 bwrap(这一步在加了 seccompProfile 后**必须重跑**);
+- 重跑 §0 探针 A/B:确认所选 seccomp 路线(Unconfined 主方案 / Localhost + profile 备选,见 `sandbox-k8s.md` §2)下 bwrap 可用(这一步在加了 seccompProfile 后**必须重跑**;勿用 RuntimeDefault——必拦 userns);
 - cc-proxy 监听 15721、multica 连 server、CC 正常 spawn Bash;
 - livenessProbe / readinessProbe(exec 探针,127.0.0.1:19514 / 15721)正常;
 - NetworkPolicy 上线后:multica server、bigdata-mcp 端点、LLM provider base_url、内网 git host、npm registry 全部放行,其余出网被拒(从容器内 `curl` 抽查几个)。
@@ -168,13 +168,27 @@ mv /tmp/bwrap.bak "$(which bwrap)"   # 恢复
 
 **作废结论**:旧版据此判定"enableWeakerNestedSandbox 不需要(模式 A/B 均不适用)"——探针 A 不触发 /proc 挂载,不覆盖模式 A 判定。是否需要该选项以**探针 B**(`bwrap --ro-bind / / --proc /proc true`)为准,待重测。
 
-### 6.2 待办(按优先级)
+### 6.2 2026-11-01 第二轮实测(v0.3.1 真实镜像,天翼云 K8s,✅ 沙箱前提就绪)
+
+| 项 | 结果 |
+|----|------|
+| 环境 | 天翼云 K8s v1.25.6 / containerd 1.6.19 / 内核 4.19.90 arm64 / 30 节点;`agents-with-multica-npm:0.3.1-arm64` |
+| 镜像内容检查 | ✅ 全过:uid=1001(agent)、bwrap 0.8.0、socat、ripgrep 13.0.0、claude 2.1.296、四个二进制齐全 |
+| RuntimeDefault seccomp(硬化 Pod) | ❌ 探针 A/B/C 全挂:`No permissions to create new namespace` → seccomp 拦 CLONE_NEWUSER |
+| Unconfined(对照 Pod) | ✅ 探针 A/B/C 全 `exit=0` |
+| Localhost + 自定义 profile | ✅ 探针 A/B/C 全 `exit=0` 且 `Seccomp=2`(过滤器仍生效);profile 已分发 30 节点,kubelet seccomp 目录为天翼云特有 `/data/aikube/kubelet/seccomp/` |
+
+**本轮结论**:`enableWeakerNestedSandbox` 不需要(探针 B 在两条路线下均过);RuntimeDefault 必拦 userns 属预期行为。**seccomp 路线定稿:主方案 Unconfined、备选 Localhost + profile**(决策依据见 `sandbox-k8s.md` §2.2)。§0 验证至此完成。
+
+### 6.3 待办(按优先级)
 
 | 项 | 状态 | 说明 |
 |----|------|------|
-| §0.3 探针 B(/proc 挂载) | ⬜ | 决定 enableWeakerNestedSandbox 取舍,优先级最高 |
-| bwrap + socat + ripgrep 并入真实 `base/Dockerfile` | ⬜ | 当前仅测试镜像装有 |
-| entrypoint 非 root 重构 + settings.json 注入(含 git 方案) | ⬜ | §1 / §3 的前置 |
+| ~~§0.3 探针 B(/proc 挂载)~~ | ✅ 2026-11-01 | 两路线均过,enableWeakerNestedSandbox 不需要(§6.2) |
+| ~~bwrap + socat + ripgrep 并入真实 `base/Dockerfile`~~ | ✅ v0.3.1 | 已入镜像并实测 |
+| 目标 namespace PSS 标签检查 | ⬜ | Unconfined 主方案前置(enforced=restricted 时 Pod 被拒收,须切备选) |
+| StatefulSet 切硬化 securityContext + Unconfined | ⬜ | `sandbox-k8s.md` §2.2.1 即模板 |
+| entrypoint 非 root 重构 ~~+ settings.json 注入(含 git 方案)~~ | ✅ entrypoint 已完成(v0.3.1);settings.json 注入仍待做 | §1 / §3 的前置 |
 | §1 per-command 沙箱全项 | ⬜ | 含"应死"项(psql 直连 / 裸私网 IP / loopback 直连)——这些是沙箱生效的负面证明 |
-| §2 MCP 沙箱外工作 + NetworkPolicy | ⬜ | 本方案核心通道 |
-| §3 硬化反向验证(去 privileged/network host + securityContext) | ⬜ | 必须确认硬化没把 CC 搞挂;加 seccompProfile 后重跑 §0 |
+| §2 MCP 沙箱外工作 + NetworkPolicy | ⬜ | 本方案核心通道;主方案下 NetworkPolicy 是唯一出网边界,优先级最高 |
+| §3 硬化反向验证(去 privileged/network host + securityContext) | ⬜ | 必须确认硬化没把 CC 搞挂;切 seccomp 路线后重跑 §0 |

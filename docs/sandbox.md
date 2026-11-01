@@ -185,18 +185,19 @@ K8s(StatefulSet)侧(前置:§4.4 entrypoint 重构完成):
 ```yaml
 securityContext:
   runAsNonRoot: true
-  runAsUser: 1000          # agent
+  runAsUser: 1001           # agent(镜像 v0.3.1 起 uid 为 1001)
   allowPrivilegeEscalation: false
   capabilities:
     drop: ["ALL"]
   seccompProfile:
-    type: RuntimeDefault
+    type: Unconfined        # 主方案;RuntimeDefault 会拦 CLONE_NEWUSER,bwrap 起不来
 ```
 
+- **seccomp 路线(2026-11-01 定稿)**:主方案 `Unconfined`(零节点依赖,无需管理员参与),备选 `Localhost + 自定义 profile`(更强隔离,但每节点要分发文件)。完整对比、前置检查(PSS restricted 标签、NetworkPolicy 同期)、实测记录见 `docs/sandbox-k8s.md` §2。
 - `readOnlyRootFilesystem: true` 可后续再加,需为 `/tmp`、`/var/tmp`(及 `/home/agent` 若根文件系统只读)挂 `emptyDir` / tmpfs;未处理挂载前先省略,其余硬化项独立生效。
-- 硬化后必须重跑 `docs/sandbox-verification.md` §0 探针,确认 RuntimeDefault seccomp 不拦 bwrap。
+- 硬化后必须重跑 `docs/sandbox-verification.md` §0 探针(天翼云 2026-11-01 已实测:Unconfined 与 Localhost + profile 两路线三探针全绿)。
 
-**NetworkPolicy(MCP 通道的唯一出网约束)**:沙箱不管 MCP,意味着 pod 级出网必须由 NetworkPolicy 收口,否则 MCP 通道是不受沙箱约束的外泄口。egress 至少放行:DNS(kube-dns)、multica server、bigdata-mcp 及远端 MCP 端点(含 ng 网关)、LLM provider 各 base_url(cc-proxy 出向)、内网 git host 与 npm registry;default deny 其余。方案 1 的 git 排除命令不设防问题也由它兜底。
+**NetworkPolicy(MCP 通道的唯一出网约束)**:沙箱不管 MCP,意味着 pod 级出网必须由 NetworkPolicy 收口,否则 MCP 通道是不受沙箱约束的外泄口。egress 至少放行:DNS(kube-dns)、multica server、bigdata-mcp 及远端 MCP 端点(含 ng 网关)、LLM provider 各 base_url(cc-proxy 出向)、内网 git host 与 npm registry;default deny 其余。方案 1 的 git 排除命令不设防问题也由它兜底。**主方案 Unconfined 丢掉了容器级 seccomp syscall 过滤,NetworkPolicy 的分量更重——它是 pod 出网的唯一闸门,必须与沙箱同期上线。**
 
 ## 5. 验证
 
